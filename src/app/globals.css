@@ -84,3 +84,34 @@ body {
   .marquee-left, .marquee-right { animation: none; }
   .eq-on { animation: none; height: 60%; }
 }
+
+/* Logo como letreiro de LED: acende, pisca e respira */
+@keyframes logo-ignite {
+  0%   { opacity: 0.05; }
+  7%   { opacity: 0.85; }
+  10%  { opacity: 0.12; }
+  15%  { opacity: 0.92; }
+  18%  { opacity: 0.25; }
+  24%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+@keyframes logo-breathe {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(242, 164, 18, 0.42))
+            drop-shadow(0 0 34px rgba(242, 164, 18, 0.22));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(242, 164, 18, 0.62))
+            drop-shadow(0 0 60px rgba(242, 164, 18, 0.32));
+  }
+}
+.logo-ignite { animation: logo-ignite 2.1s ease-out both; }
+.logo-glow { animation: logo-breathe 5.5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-ignite { animation: none; }
+  .logo-glow {
+    animation: none;
+    filter: drop-shadow(0 0 12px rgba(242, 164, 18, 0.4));
+  }
+}

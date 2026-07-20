@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useScroll, useMotionValueEvent, useReducedMotion } from "motion/react";
+import { LogoNeon } from "./LogoNeon";
 
 const FRAME_COUNT = 87;
 const src = (i: number) => `/hero/${String(i).padStart(3, "0")}.webp`;
@@ -129,7 +130,7 @@ export function Hero() {
         <Image src="/brand/hero-poster.jpg" alt="Alude no palco" fill preload className="object-cover opacity-45" sizes="100vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-noite via-noite/40 to-noite/70" />
         <div className="relative z-10 flex flex-col items-center gap-7">
-          <Image src="/brand/logo-branca.png" alt="ALUDE" width={340} height={340} className="h-auto w-56" preload />
+          <LogoNeon className="w-64" />
           <h1 className="display text-3xl md:text-5xl">O anfitrião da música boa no Rio</h1>
         </div>
       </header>
@@ -154,14 +155,7 @@ export function Hero() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(5,6,10,0.82)_92%)]" />
 
         <div ref={logoRef} style={{ opacity: 1 }} className={beatClass}>
-          <Image
-            src="/brand/logo-branca.png"
-            alt="ALUDE"
-            width={460}
-            height={460}
-            className="h-auto w-56 drop-shadow-[0_6px_34px_rgba(0,0,0,0.7)] md:w-80"
-            preload
-          />
+          <LogoNeon className="w-[68vw] max-w-[520px] md:w-[42vw]" />
         </div>
 
         <div ref={anfRef} style={{ opacity: 0 }} className={beatClass}>

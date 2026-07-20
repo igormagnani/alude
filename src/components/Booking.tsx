@@ -49,7 +49,7 @@ export function Rodape() {
   return (
     <footer className="border-t border-areia/10 px-6 py-12">
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 md:flex-row md:justify-between">
-        <Image src="/brand/logo-branca.png" alt="ALUDE" width={120} height={120} className="h-auto w-24" />
+        <Image src="/brand/logo-cor.png" alt="ALUDE" width={240} height={118} className="h-auto w-24" />
         <div className="flex gap-7 text-[10px] uppercase tracking-[0.3em] text-areia/55">
           <a href="https://www.instagram.com/aludemusic/" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-ambar">Instagram</a>
           <a href="https://open.spotify.com/artist/0y1hTVsxI6ZHval2nbIZJH" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-ambar">Spotify</a>
