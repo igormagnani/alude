@@ -32,7 +32,7 @@ export function Sol() {
       <motion.div style={reduced ? undefined : { scale, y }} className="absolute inset-0">
         <video
           ref={videoRef}
-          className="h-full w-full object-cover opacity-70"
+          className="h-full w-full object-cover"
           src="/media/sol-vertical.mp4"
           poster="/media/sol-poster.jpg"
           muted
@@ -42,7 +42,14 @@ export function Sol() {
           aria-hidden
         />
       </motion.div>
-      <div className="absolute inset-0 bg-gradient-to-t from-breu via-breu/25 to-breu/60" />
+      {/* escurece só onde o texto vive; no topo o vídeo aparece limpo */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(5,6,10,0.96) 0%, rgba(5,6,10,0.88) 14%, rgba(5,6,10,0.58) 32%, rgba(5,6,10,0.24) 52%, rgba(5,6,10,0.06) 74%, rgba(5,6,10,0.16) 100%)",
+        }}
+      />
       <div className="absolute bottom-[10vh] left-6 max-w-lg md:left-[8vw]">
         <p className="text-[11px] uppercase tracking-[0.4em] text-ambar">
           Sol da Meia Noite · Vista Joá
