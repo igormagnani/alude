@@ -69,7 +69,7 @@ function Constelacao() {
       viewBox="0 0 900 540"
       role="img"
       aria-label="Cidades onde o Alude já tocou, ligadas ao Rio de Janeiro"
-      className="w-full"
+      className="hidden w-full md:block"
     >
       {CIDADES.slice(1).map(([nome, x, y], i) => (
         <line
@@ -110,6 +110,59 @@ function Constelacao() {
   );
 }
 
+/** Mobile: a mesma rota, lida de cima pra baixo, com tudo legível. */
+function RotaMobile() {
+  const ref = useRef<HTMLUListElement>(null);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => e.isIntersecting && (setOn(true), io.disconnect()),
+      { threshold: 0.15 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <ul ref={ref} className="relative flex flex-col gap-7 pl-9 md:hidden">
+      {/* trilha que se desenha */}
+      <span
+        aria-hidden
+        className="absolute left-[7px] top-2 w-px origin-top bg-gradient-to-b from-ambar via-ambar/45 to-transparent transition-transform duration-[1400ms] ease-out"
+        style={{ bottom: "0.75rem", transform: `scaleY(${on ? 1 : 0})` }}
+      />
+      {CIDADES.map(([nome, , , sub], i) => {
+        const hub = i === 0;
+        return (
+          <li
+            key={nome}
+            className="relative transition-all duration-700 ease-out"
+            style={{
+              opacity: on ? 1 : 0,
+              transform: on ? "none" : "translateX(-10px)",
+              transitionDelay: `${0.12 + i * 0.09}s`,
+            }}
+          >
+            <span
+              aria-hidden
+              className={`absolute -left-9 top-[0.45rem] rounded-full bg-ambar ${
+                hub ? "h-3 w-3 ring-4 ring-ambar/20" : "h-2 w-2"
+              }`}
+              style={{ marginLeft: hub ? "-1px" : "0" }}
+            />
+            <p className={`leading-tight ${hub ? "text-lg font-semibold text-areia" : "text-base font-semibold text-areia/90"}`}>
+              {nome}
+            </p>
+            <p className="mt-0.5 text-xs uppercase tracking-[0.14em] text-ambar/85">{sub}</p>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function Festas() {
   const terco = Math.ceil(FESTAS.length / 2);
   return (
@@ -120,6 +173,10 @@ export function Festas() {
       <Row items={FESTAS.slice(0, terco)} dir="left" />
       <Row items={[...FESTAS.slice(terco), "entre outras"]} dir="right" />
       <div className="mx-auto mt-[12vh] max-w-4xl px-6">
+        <p className="mb-8 text-[11px] uppercase tracking-[0.4em] text-areia/40 md:hidden">
+          A rota
+        </p>
+        <RotaMobile />
         <Constelacao />
       </div>
     </section>
