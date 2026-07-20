@@ -12,17 +12,34 @@ const FESTAS = [
   "JAM", "VEM!", "Jungle",
 ];
 
-// [nome, x, y, sub, ancora do texto]
-const CIDADES: [string, number, number, string, "start" | "end"][] = [
-  ["Rio de Janeiro", 640, 250, "a casa", "start"],
-  ["Búzios", 790, 168, "Privilège", "start"],
-  ["Juiz de Fora", 560, 128, "Privilège", "end"],
-  ["Vitória", 726, 62, "Pink Elephant · Tantra", "end"],
-  ["São Paulo", 452, 312, "Sutton · Conexão RJxSP", "end"],
-  ["Balneário Camboriú", 386, 402, "Selenza", "start"],
-  ["Porto Alegre", 318, 474, "C688", "start"],
-  ["Santiago · Chile", 96, 430, "Holy Snow", "start"],
+type Cidade = { nome: string; x: number; y: number; sub: string; anchor: "start" | "end" };
+
+/** Paisagem: as cidades espalhadas, todas ligadas ao Rio. O índice 0 é sempre o hub. */
+const DESKTOP: Cidade[] = [
+  { nome: "Rio de Janeiro", x: 640, y: 250, sub: "a casa", anchor: "start" },
+  { nome: "Búzios", x: 790, y: 168, sub: "Privilège", anchor: "start" },
+  { nome: "Juiz de Fora", x: 560, y: 128, sub: "Privilège", anchor: "end" },
+  { nome: "Vitória", x: 726, y: 62, sub: "Pink Elephant · Tantra", anchor: "end" },
+  { nome: "São Paulo", x: 452, y: 312, sub: "Sutton · Conexão RJxSP", anchor: "end" },
+  { nome: "Balneário Camboriú", x: 386, y: 402, sub: "Selenza", anchor: "start" },
+  { nome: "Porto Alegre", x: 318, y: 474, sub: "C688", anchor: "start" },
+  { nome: "Santiago · Chile", x: 96, y: 430, sub: "Holy Snow", anchor: "start" },
 ];
+const DESKTOP_LINHAS: [number, number][] = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7]];
+
+/** Retrato: a mesma constelação redistribuída pra caber em pé, com tipo grande. */
+const MOBILE: Cidade[] = [
+  { nome: "Rio de Janeiro", x: 250, y: 300, sub: "a casa", anchor: "end" },
+  { nome: "Búzios", x: 300, y: 190, sub: "Privilège", anchor: "start" },
+  { nome: "Juiz de Fora", x: 95, y: 175, sub: "Privilège", anchor: "start" },
+  { nome: "Vitória", x: 280, y: 85, sub: "Pink Elephant · Tantra", anchor: "end" },
+  { nome: "São Paulo", x: 95, y: 420, sub: "Sutton · Conexão RJxSP", anchor: "start" },
+  { nome: "Balneário Camboriú", x: 190, y: 530, sub: "Selenza", anchor: "start" },
+  { nome: "Porto Alegre", x: 130, y: 630, sub: "C688", anchor: "start" },
+  { nome: "Santiago · Chile", x: 55, y: 720, sub: "Holy Snow", anchor: "start" },
+];
+// em pé a descida vira corrente (SP desce pro sul), pra nenhuma linha atravessar a coluna
+const MOBILE_LINHAS: [number, number][] = [[0, 1], [0, 2], [0, 3], [0, 4], [4, 5], [5, 6], [6, 7]];
 
 function Row({ items, dir }: { items: string[]; dir: "left" | "right" }) {
   const doubled = [...items, ...items];
@@ -48,71 +65,20 @@ function Row({ items, dir }: { items: string[]; dir: "left" | "right" }) {
   );
 }
 
-function Constelacao() {
+function Constelacao({
+  cidades,
+  linhas,
+  viewBox,
+  fontes,
+  className,
+}: {
+  cidades: Cidade[];
+  linhas: [number, number][];
+  viewBox: string;
+  fontes: { hub: number; nome: number; sub: number; gap: number };
+  className: string;
+}) {
   const ref = useRef<SVGSVGElement>(null);
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => e.isIntersecting && (setOn(true), io.disconnect()),
-      { threshold: 0.25 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  const [, rx, ry] = ["", CIDADES[0][1], CIDADES[0][2]] as const;
-  return (
-    <svg
-      ref={ref}
-      viewBox="0 0 900 540"
-      role="img"
-      aria-label="Cidades onde o Alude já tocou, ligadas ao Rio de Janeiro"
-      className="hidden w-full md:block"
-    >
-      {CIDADES.slice(1).map(([nome, x, y], i) => (
-        <line
-          key={nome}
-          x1={rx}
-          y1={ry}
-          x2={x}
-          y2={y}
-          stroke="var(--areia)"
-          strokeOpacity={0.2}
-          strokeWidth={1}
-          strokeDasharray="600"
-          strokeDashoffset={on ? 0 : 600}
-          style={{ transition: `stroke-dashoffset 1.1s cubic-bezier(0.16,1,0.3,1) ${i * 0.09}s` }}
-        />
-      ))}
-      {CIDADES.map(([nome, x, y, sub, anchor], i) => {
-        const hub = i === 0;
-        const dx = anchor === "end" ? -14 : 14;
-        return (
-          <g key={nome} style={{ opacity: on ? 1 : 0, transition: `opacity 0.7s ease ${0.2 + i * 0.09}s` }}>
-            {hub ? <circle cx={x} cy={y} r={15} fill="var(--ambar)" opacity={0.16} /> : null}
-            <circle cx={x} cy={y} r={hub ? 6.5 : 4} fill="var(--ambar)">
-              {!hub && (
-                <animate attributeName="opacity" values="1;0.4;1" dur="3.2s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
-              )}
-            </circle>
-            <text x={x + dx} y={y + 1} textAnchor={anchor} fill="var(--areia)" fillOpacity={0.92} fontSize={hub ? 19 : 15} fontWeight={600}>
-              {nome}
-            </text>
-            <text x={x + dx} y={y + 20} textAnchor={anchor} fill="var(--ambar)" fillOpacity={0.8} fontSize={11.5} letterSpacing="0.08em">
-              {sub}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-/** Mobile: a mesma rota, lida de cima pra baixo, com tudo legível. */
-function RotaMobile() {
-  const ref = useRef<HTMLUListElement>(null);
   const [on, setOn] = useState(false);
   useEffect(() => {
     const el = ref.current;
@@ -126,40 +92,74 @@ function RotaMobile() {
   }, []);
 
   return (
-    <ul ref={ref} className="relative flex flex-col gap-7 pl-9 md:hidden">
-      {/* trilha que se desenha */}
-      <span
-        aria-hidden
-        className="absolute left-[7px] top-2 w-px origin-top bg-gradient-to-b from-ambar via-ambar/45 to-transparent transition-transform duration-[1400ms] ease-out"
-        style={{ bottom: "0.75rem", transform: `scaleY(${on ? 1 : 0})` }}
-      />
-      {CIDADES.map(([nome, , , sub], i) => {
+    <svg
+      ref={ref}
+      viewBox={viewBox}
+      role="img"
+      aria-label="Cidades onde o Alude já tocou, ligadas ao Rio de Janeiro"
+      className={className}
+    >
+      {linhas.map(([a, b], i) => (
+        <line
+          key={`${a}-${b}`}
+          x1={cidades[a].x}
+          y1={cidades[a].y}
+          x2={cidades[b].x}
+          y2={cidades[b].y}
+          stroke="var(--areia)"
+          strokeOpacity={0.2}
+          strokeWidth={1}
+          strokeDasharray="600"
+          strokeDashoffset={on ? 0 : 600}
+          style={{ transition: `stroke-dashoffset 1.1s cubic-bezier(0.16,1,0.3,1) ${i * 0.09}s` }}
+        />
+      ))}
+      {cidades.map(({ nome, x, y, sub, anchor }, i) => {
         const hub = i === 0;
+        const dx = anchor === "end" ? -14 : 14;
         return (
-          <li
-            key={nome}
-            className="relative transition-all duration-700 ease-out"
-            style={{
-              opacity: on ? 1 : 0,
-              transform: on ? "none" : "translateX(-10px)",
-              transitionDelay: `${0.12 + i * 0.09}s`,
-            }}
-          >
-            <span
-              aria-hidden
-              className={`absolute -left-9 top-[0.45rem] rounded-full bg-ambar ${
-                hub ? "h-3 w-3 ring-4 ring-ambar/20" : "h-2 w-2"
-              }`}
-              style={{ marginLeft: hub ? "-1px" : "0" }}
-            />
-            <p className={`leading-tight ${hub ? "text-lg font-semibold text-areia" : "text-base font-semibold text-areia/90"}`}>
+          <g key={nome} style={{ opacity: on ? 1 : 0, transition: `opacity 0.7s ease ${0.2 + i * 0.09}s` }}>
+            {hub ? <circle cx={x} cy={y} r={fontes.hub} fill="var(--ambar)" opacity={0.16} /> : null}
+            <circle cx={x} cy={y} r={hub ? 6.5 : 4} fill="var(--ambar)">
+              {!hub && (
+                <animate attributeName="opacity" values="1;0.4;1" dur="3.2s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
+              )}
+            </circle>
+            {/* o contorno no breu abre um respiro atrás do texto: linha nenhuma atrapalha a leitura */}
+            <text
+              x={x + dx}
+              y={y + 1}
+              textAnchor={anchor}
+              fill="var(--areia)"
+              fillOpacity={0.92}
+              fontSize={hub ? fontes.nome + 4 : fontes.nome}
+              fontWeight={600}
+              stroke="var(--breu)"
+              strokeWidth={3.5}
+              strokeLinejoin="round"
+              paintOrder="stroke"
+            >
               {nome}
-            </p>
-            <p className="mt-0.5 text-xs uppercase tracking-[0.14em] text-ambar/85">{sub}</p>
-          </li>
+            </text>
+            <text
+              x={x + dx}
+              y={y + fontes.gap}
+              textAnchor={anchor}
+              fill="var(--ambar)"
+              fillOpacity={0.8}
+              fontSize={fontes.sub}
+              letterSpacing="0.08em"
+              stroke="var(--breu)"
+              strokeWidth={3}
+              strokeLinejoin="round"
+              paintOrder="stroke"
+            >
+              {sub}
+            </text>
+          </g>
         );
       })}
-    </ul>
+    </svg>
   );
 }
 
@@ -173,11 +173,21 @@ export function Festas() {
       <Row items={FESTAS.slice(0, terco)} dir="left" />
       <Row items={[...FESTAS.slice(terco), "entre outras"]} dir="right" />
       <div className="mx-auto mt-[12vh] max-w-4xl px-6">
-        <p className="mb-8 text-[11px] uppercase tracking-[0.4em] text-areia/40 md:hidden">
-          A rota
-        </p>
-        <RotaMobile />
-        <Constelacao />
+        <p className="mb-6 text-[11px] uppercase tracking-[0.4em] text-areia/40 md:hidden">A rota</p>
+        <Constelacao
+          cidades={MOBILE}
+          linhas={MOBILE_LINHAS}
+          viewBox="0 0 400 780"
+          fontes={{ hub: 17, nome: 17.5, sub: 12, gap: 22 }}
+          className="w-full md:hidden"
+        />
+        <Constelacao
+          cidades={DESKTOP}
+          linhas={DESKTOP_LINHAS}
+          viewBox="0 0 900 540"
+          fontes={{ hub: 15, nome: 15, sub: 11.5, gap: 20 }}
+          className="hidden w-full md:block"
+        />
       </div>
     </section>
   );
