@@ -1,0 +1,127 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+const ANCORAS = new Set(["Isso Não é Uma Festa", "D.Edge", "Privilège Búzios", "Privilège Juiz de Fora"]);
+
+const FESTAS = [
+  "Isso Não é Uma Festa", "Aldeia Lagoa", "Privilège Búzios", "Privilège Juiz de Fora",
+  "C688", "Festa Tulum", "Pink Elephant", "D.Edge", "Tantra", "Sutton", "Selenza",
+  "Haya Réveillon", "FeijoaJay", "AVA · Dash · Boox", "Holy Snow", "Casa Sounds",
+  "Festival Love Park", "Baretto Londra", "Festa Boato", "Conexão RJxSP", "ARCVS",
+  "JAM", "VEM!", "Jungle",
+];
+
+// [nome, x, y, sub, ancora do texto]
+const CIDADES: [string, number, number, string, "start" | "end"][] = [
+  ["Rio de Janeiro", 640, 250, "a casa", "start"],
+  ["Búzios", 790, 168, "Privilège", "start"],
+  ["Juiz de Fora", 560, 128, "Privilège", "end"],
+  ["Vitória", 726, 62, "Pink Elephant · Tantra", "end"],
+  ["São Paulo", 452, 312, "Sutton · Conexão RJxSP", "end"],
+  ["Balneário Camboriú", 386, 402, "Selenza", "start"],
+  ["Porto Alegre", 318, 474, "C688", "start"],
+  ["Santiago · Chile", 96, 430, "Holy Snow", "start"],
+];
+
+function Row({ items, dir }: { items: string[]; dir: "left" | "right" }) {
+  const doubled = [...items, ...items];
+  return (
+    <div className="overflow-hidden py-2">
+      <div
+        aria-hidden="true"
+        className={`marquee-track ${dir === "left" ? "marquee-left" : "marquee-right"}`}
+      >
+        {doubled.map((f, i) => (
+          <span
+            key={`${f}-${i}`}
+            className={`display whitespace-nowrap px-6 text-[clamp(1.6rem,4.4vw,3.4rem)] ${
+              ANCORAS.has(f) ? "text-areia" : "outline-type"
+            }`}
+          >
+            {f}
+            <span className="ml-6 text-ambar/70">·</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Constelacao() {
+  const ref = useRef<SVGSVGElement>(null);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => e.isIntersecting && (setOn(true), io.disconnect()),
+      { threshold: 0.25 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const [, rx, ry] = ["", CIDADES[0][1], CIDADES[0][2]] as const;
+  return (
+    <svg
+      ref={ref}
+      viewBox="0 0 900 540"
+      role="img"
+      aria-label="Cidades onde o Alude já tocou, ligadas ao Rio de Janeiro"
+      className="w-full"
+    >
+      {CIDADES.slice(1).map(([nome, x, y], i) => (
+        <line
+          key={nome}
+          x1={rx}
+          y1={ry}
+          x2={x}
+          y2={y}
+          stroke="var(--areia)"
+          strokeOpacity={0.2}
+          strokeWidth={1}
+          strokeDasharray="600"
+          strokeDashoffset={on ? 0 : 600}
+          style={{ transition: `stroke-dashoffset 1.1s cubic-bezier(0.16,1,0.3,1) ${i * 0.09}s` }}
+        />
+      ))}
+      {CIDADES.map(([nome, x, y, sub, anchor], i) => {
+        const hub = i === 0;
+        const dx = anchor === "end" ? -14 : 14;
+        return (
+          <g key={nome} style={{ opacity: on ? 1 : 0, transition: `opacity 0.7s ease ${0.2 + i * 0.09}s` }}>
+            {hub ? <circle cx={x} cy={y} r={15} fill="var(--ambar)" opacity={0.16} /> : null}
+            <circle cx={x} cy={y} r={hub ? 6.5 : 4} fill="var(--ambar)">
+              {!hub && (
+                <animate attributeName="opacity" values="1;0.4;1" dur="3.2s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
+              )}
+            </circle>
+            <text x={x + dx} y={y + 1} textAnchor={anchor} fill="var(--areia)" fillOpacity={0.92} fontSize={hub ? 19 : 15} fontWeight={600}>
+              {nome}
+            </text>
+            <text x={x + dx} y={y + 20} textAnchor={anchor} fill="var(--ambar)" fillOpacity={0.8} fontSize={11.5} letterSpacing="0.08em">
+              {sub}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+export function Festas() {
+  const terco = Math.ceil(FESTAS.length / 2);
+  return (
+    <section className="bg-breu py-[14vh]">
+      <div className="mx-auto mb-14 max-w-6xl px-6">
+        <p className="text-[11px] uppercase tracking-[0.4em] text-ambar">Onde esse som já tocou</p>
+      </div>
+      <Row items={FESTAS.slice(0, terco)} dir="left" />
+      <Row items={[...FESTAS.slice(terco), "entre outras"]} dir="right" />
+      <div className="mx-auto mt-[12vh] max-w-4xl px-6">
+        <Constelacao />
+      </div>
+    </section>
+  );
+}
