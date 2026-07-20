@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 
 const ITEMS = [
-  { n: "500", unit: "mil", label: "streams da primeira faixa, e contando" },
-  { n: "1.000", unit: "pessoas", label: "o tamanho da noite no Vista Joá" },
-  { n: "8", unit: "horas", label: "o set que atravessa a madrugada" },
+  { n: "500+", unit: "mil plays", label: "a primeira faixa, e contando" },
+  { n: "1.000+", unit: "horas de palco", label: "do warmup ao after, noite após noite" },
+  { n: "100+", unit: "festas e clubes", label: "de casa cheia a réveillon" },
   { n: "6", unit: "estados", label: "do Rio a Santa Catarina, sem contar o Chile" },
 ];
 
@@ -70,7 +70,7 @@ function Item({ n, unit, label }: { n: string; unit: string; label: string }) {
     <div className="shrink-0">
       <p className="display leading-none text-[clamp(4rem,13vw,11rem)] text-areia">
         {n}
-        <span className="ml-4 align-baseline text-ambar text-[clamp(1.3rem,3vw,2.6rem)]">
+        <span className="ml-4 align-baseline text-ambar text-[clamp(1.3rem,3vw,2.6rem)] tracking-[0.01em] [word-spacing:0.18em]">
           {unit}
         </span>
       </p>
