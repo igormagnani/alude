@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { useScroller } from "./Scroller";
 
 const ITEMS = [
   { n: "500+", unit: "mil plays", label: "a primeira faixa, e contando" },
@@ -37,7 +38,8 @@ export function Numeros() {
   }, []);
 
   // sticky: o trecho horizontal só acontece com a seção ocupando a tela
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  const scroller = useScroller();
+  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start start", "end end"] });
   const x = useTransform(scrollYProgress, [0.08, 0.92], [0, -travel]);
 
   if (reduced) {
@@ -53,10 +55,8 @@ export function Numeros() {
   }
 
   return (
-    // mesma conta do hero: o 100dvh cancela a viewport no divisor do progresso, então
-    // a barra de endereços do celular não faz a faixa horizontal saltar
-    <section ref={ref} className="relative h-[calc(180vh+100dvh)] bg-noite">
-      <div className="sticky top-0 flex h-[100lvh] items-center overflow-hidden">
+    <section ref={ref} className="relative h-[280svh] bg-noite">
+      <div className="sticky top-0 flex h-svh items-center overflow-hidden">
         <motion.div ref={trackRef} style={{ x }} className="flex w-max gap-24 px-[7vw] md:gap-40">
           {ITEMS.map((it) => (
             <Item key={it.label} {...it} />

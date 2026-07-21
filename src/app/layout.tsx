@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
-import { SmoothScroll } from "@/components/SmoothScroll";
+import { Scroller } from "@/components/Scroller";
 
 const archivo = Archivo({
   variable: "--font-archivo",
@@ -26,8 +26,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={`${archivo.variable} ${inter.variable} h-full antialiased`}>
-      <body className="min-h-full">
-        <SmoothScroll>{children}</SmoothScroll>
+      <body className="h-full overflow-hidden">
+        <Scroller>{children}</Scroller>
       </body>
     </html>
   );

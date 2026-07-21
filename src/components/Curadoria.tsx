@@ -4,12 +4,14 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { SERIES_ATIVAS } from "@/data/playlists";
+import { useScroller } from "./Scroller";
 
 export function Curadoria() {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
   const [ativa, setAtiva] = useState(0);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const scroller = useScroller();
+  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start end", "end start"] });
   const rotate = useTransform(scrollYProgress, [0, 1], [-4.5, 4.5]);
   const y = useTransform(scrollYProgress, [0, 1], [36, -36]);
 

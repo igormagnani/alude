@@ -18,19 +18,21 @@
   --font-body: var(--font-inter);
 }
 
-/* clip (e não hidden) no html: hidden faz o body virar contêiner de scroll,
-   o que briga com o Lenis e com os sticky e faz a página pular ao inverter a direção */
+/* Quem rola é o <Scroller>, não o documento: é isso que mantém a barra de endereços
+   do celular parada. O documento fica travado no tamanho da tela. */
 html {
-  overflow-x: clip;
+  height: 100%;
+  overflow: hidden;
   overflow-anchor: none;
-  overscroll-behavior-y: none;
 }
 
 body {
+  height: 100%;
+  overflow: hidden;
   background: var(--noite);
   color: var(--areia);
   font-family: var(--font-inter), system-ui, sans-serif;
-  overflow-x: clip;
+  overscroll-behavior: none;
 }
 
 ::selection {

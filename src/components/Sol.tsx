@@ -2,12 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { useScroller } from "./Scroller";
 
 export function Sol() {
   const ref = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const reduced = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const scroller = useScroller();
+  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start end", "end start"] });
   const scale = useTransform(scrollYProgress, [0, 1], [1.16, 1]);
   const y = useTransform(scrollYProgress, [0, 1], ["-4%", "4%"]);
 

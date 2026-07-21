@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useScroll, useMotionValueEvent, useReducedMotion } from "motion/react";
 import { LogoNeon } from "./LogoNeon";
+import { useScroller } from "./Scroller";
 
 const FRAME_COUNT = 87;
 const src = (i: number) => `/hero/${String(i).padStart(3, "0")}.webp`;
@@ -42,7 +43,9 @@ export function Hero() {
   const reduced = useReducedMotion();
   const [ready, setReady] = useState(false);
 
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  const scroller = useScroller();
+
+  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start start", "end end"] });
 
   // preload progressivo: primeiro o frame 0, depois o resto
   useEffect(() => {
@@ -141,15 +144,13 @@ export function Hero() {
     "pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center";
 
   return (
-    // 300vh de scrub + 100dvh de tela presa: o dvh cancela a altura da viewport na
-    // conta do progresso, então recolher a barra de endereços do celular não muda o
-    // divisor e o frame não pula. A tela presa usa lvh (constante) pra o canvas nunca
-    // ser redimensionado e recortado de novo.
-    <div ref={ref} className="relative h-[calc(300vh+100dvh)]">
+    // dentro do <Scroller> a viewport nunca muda de tamanho, então svh é constante:
+    // 400svh = 300svh de scrub + a tela presa
+    <div ref={ref} className="relative h-[400svh]">
       <h1 className="sr-only">
         Alude, o anfitrião da música boa no Rio. Do warmup ao after.
       </h1>
-      <div className="sticky top-0 h-[100lvh] overflow-hidden bg-breu grain">
+      <div className="sticky top-0 h-svh overflow-hidden bg-breu grain">
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />
         {!ready ? (
           <Image src="/brand/hero-poster.jpg" alt="" fill priority className="object-cover" sizes="100vw" />

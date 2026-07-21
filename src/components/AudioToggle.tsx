@@ -1,15 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useScroller } from "./Scroller";
 
 const KEY = "alude-som";
-const GESTOS = ["pointerdown", "touchend", "keydown"] as const;
+// rolar não conta como gesto de ativação pro navegador, mas o toque que inicia a
+// rolagem conta: por isso pointerdown/touchstart entram junto do scroll
+const GESTOS = ["pointerdown", "touchstart", "touchend", "keydown", "click"] as const;
 
 export function AudioToggle() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const botaoRef = useRef<HTMLButtonElement>(null);
   const [playing, setPlaying] = useState(false);
   const [armado, setArmado] = useState(false);
+  const scroller = useScroller();
 
   const iniciar = useCallback(async () => {
     const el = audioRef.current;
@@ -48,15 +52,20 @@ export function AudioToggle() {
         // válido não pode custar a próxima chance
         if (await iniciar()) desarmar();
       };
-      desarmar = () => GESTOS.forEach((g) => window.removeEventListener(g, aoGesto));
+      const alvoScroll = scroller.current;
+      desarmar = () => {
+        GESTOS.forEach((g) => window.removeEventListener(g, aoGesto));
+        alvoScroll?.removeEventListener("scroll", aoGesto);
+      };
       GESTOS.forEach((g) => window.addEventListener(g, aoGesto));
+      alvoScroll?.addEventListener("scroll", aoGesto);
     })();
 
     return () => {
       vivo = false;
       desarmar();
     };
-  }, [iniciar]);
+  }, [iniciar, scroller]);
 
   const toggle = () => {
     const el = audioRef.current;

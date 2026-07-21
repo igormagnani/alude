@@ -3,11 +3,13 @@
 import Image from "next/image";
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { useScroller } from "./Scroller";
 
 export function Faixa() {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const scroller = useScroller();
+  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start end", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], ["-12%", "12%"]);
 
   return (

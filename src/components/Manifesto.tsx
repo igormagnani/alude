@@ -2,23 +2,34 @@
 
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { useScroller } from "./Scroller";
 
 const LINES = [
-  { text: "Ninguém lembra da faixa das duas da manhã.", accent: false },
-  { text: "Todo mundo lembra da noite.", accent: true },
-  { text: "Meu trabalho é a noite inteira.", accent: false },
+  { text: "A música de sempre toca em todo lugar.", accent: false },
+  { text: "Aqui você ouve a sua próxima preferida.", accent: true },
+  { text: "Pela primeira vez, e sem saber o nome ainda.", accent: false },
+  { text: "Nada disso vem pronto de casa.", accent: false },
+  { text: "Vem da pista, lida em tempo real.", accent: false },
 ];
 
 export function Manifesto() {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.9", "end 0.35"] });
+  const scroller = useScroller();
+  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start 0.9", "end 0.35"] });
 
   return (
     <section ref={ref} className="bg-breu px-6 py-[22vh] md:py-[26vh]">
       <div className="mx-auto max-w-6xl">
         {LINES.map((l, i) => (
-          <Line key={l.text} progress={scrollYProgress} index={i} reduced={!!reduced} {...l} />
+          <Line
+            key={l.text}
+            progress={scrollYProgress}
+            index={i}
+            total={LINES.length}
+            reduced={!!reduced}
+            {...l}
+          />
         ))}
       </div>
     </section>
@@ -28,17 +39,20 @@ export function Manifesto() {
 function Line({
   progress,
   index,
+  total,
   text,
   accent,
   reduced,
 }: {
   progress: ReturnType<typeof useScroll>["scrollYProgress"];
   index: number;
+  total: number;
   text: string;
   accent: boolean;
   reduced: boolean;
 }) {
-  const start = index * 0.18;
+  // escalona dentro dos primeiros 70%, sobra 30% pro fade da última linha caber inteiro
+  const start = total > 1 ? (index / (total - 1)) * 0.7 : 0;
   const opacity = useTransform(progress, [start, start + 0.3], [0.12, 1]);
   const y = useTransform(progress, [start, start + 0.3], [26, 0]);
   const cls = `display text-[clamp(1.9rem,5.6vw,4.6rem)] ${accent ? "text-ambar" : "text-areia"}`;
