@@ -13,12 +13,12 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://alude.vercel.app"),
-  title: "ALUDE · O anfitrião da música boa no Rio",
+  title: "ALUDE · O anfitrião da boa música no Rio",
   description:
     "DJ e produtor carioca de palcos grandes. Do warmup ao after: qualquer pista, uma experiência.",
   openGraph: {
     title: "ALUDE",
-    description: "O anfitrião da música boa no Rio. Do warmup ao after.",
+    description: "O anfitrião da boa música no Rio. Do warmup ao after.",
     images: ["/brand/hero-poster.jpg"],
   },
 };

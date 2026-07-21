@@ -1,84 +1,80 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useScroller } from "./Scroller";
 
 const KEY = "alude-som";
-// rolar não conta como gesto de ativação pro navegador, mas o toque que inicia a
-// rolagem conta: por isso pointerdown/touchstart entram junto do scroll
+// Rolar não conta como gesto de ativação pro navegador, mas o toque que INICIA a
+// rolagem conta. Por isso pointerdown/touchstart entram junto do scroll.
 const GESTOS = ["pointerdown", "touchstart", "touchend", "keydown", "click"] as const;
 
 export function AudioToggle() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const botaoRef = useRef<HTMLButtonElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [armado, setArmado] = useState(false);
   const scroller = useScroller();
+  const [playing, setPlaying] = useState(false);
+  const [quer, setQuer] = useState(true);
 
-  const iniciar = useCallback(async () => {
+  // O estado do botão vem do elemento, não da nossa suposição: se o navegador aceitar o
+  // play() e pausar logo depois (Brave e Safari fazem isso), o botão conta a verdade e o
+  // gatilho volta a ficar armado sozinho.
+  useEffect(() => {
     const el = audioRef.current;
-    if (!el) return false;
-    el.volume = 0.5;
-    try {
-      await el.play();
-      setPlaying(true);
-      setArmado(false);
-      localStorage.setItem(KEY, "on");
-      return true;
-    } catch {
-      return false;
-    }
+    if (!el) return;
+    const ligou = () => setPlaying(true);
+    const parou = () => setPlaying(false);
+    el.addEventListener("play", ligou);
+    el.addEventListener("pause", parou);
+    return () => {
+      el.removeEventListener("play", ligou);
+      el.removeEventListener("pause", parou);
+    };
   }, []);
 
-  // Site de DJ: a trilha nasce ligada. Só que todo navegador bloqueia áudio antes de um
-  // gesto do usuário, então tentamos tocar de cara e, se o bloqueio vier, deixamos armado
-  // pro primeiro toque em qualquer lugar da página. Quem já desligou uma vez (localStorage
-  // "off") continua no silêncio: preferência explícita ganha do padrão.
   useEffect(() => {
-    if (localStorage.getItem(KEY) === "off") return;
+    setQuer(localStorage.getItem(KEY) !== "off");
+  }, []);
 
-    let vivo = true;
-    let desarmar = () => {};
+  // Site de DJ: a trilha nasce ligada. Como o navegador bloqueia áudio antes de um gesto,
+  // tentamos de cara e seguimos escutando ENQUANTO estiver pausado. Ficar escutando (em vez
+  // de desarmar na primeira tentativa) é o que salva quando o navegador recusa o primeiro
+  // gesto ou pausa por conta própria. Quem apertou "som off" continua no silêncio.
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!quer || !el) return;
 
-    void (async () => {
-      if (await iniciar()) return;
-      if (!vivo) return;
-      setArmado(true);
-
-      const aoGesto = async (e: Event) => {
-        // toque no próprio botão é decisão dele: deixa o onClick resolver
-        if (e.target instanceof Node && botaoRef.current?.contains(e.target)) return;
-        // só desarma se realmente tocou: gesto que o navegador não aceitou como
-        // válido não pode custar a próxima chance
-        if (await iniciar()) desarmar();
-      };
-      const alvoScroll = scroller.current;
-      desarmar = () => {
-        GESTOS.forEach((g) => window.removeEventListener(g, aoGesto));
-        alvoScroll?.removeEventListener("scroll", aoGesto);
-      };
-      GESTOS.forEach((g) => window.addEventListener(g, aoGesto));
-      alvoScroll?.addEventListener("scroll", aoGesto);
-    })();
-
-    return () => {
-      vivo = false;
-      desarmar();
+    const tentar = () => {
+      if (!el.paused) return;
+      el.volume = 0.5;
+      void el.play().catch(() => {});
     };
-  }, [iniciar, scroller]);
+
+    tentar();
+    const alvo = scroller.current;
+    GESTOS.forEach((g) => window.addEventListener(g, tentar, { passive: true }));
+    alvo?.addEventListener("scroll", tentar, { passive: true });
+    return () => {
+      GESTOS.forEach((g) => window.removeEventListener(g, tentar));
+      alvo?.removeEventListener("scroll", tentar);
+    };
+  }, [quer, scroller]);
 
   const toggle = () => {
     const el = audioRef.current;
     if (!el) return;
     if (playing) {
       el.pause();
-      setPlaying(false);
-      setArmado(false);
+      setQuer(false);
       localStorage.setItem(KEY, "off");
       return;
     }
-    void iniciar();
+    setQuer(true);
+    localStorage.setItem(KEY, "on");
+    el.volume = 0.5;
+    void el.play().catch(() => {});
   };
+
+  const esperando = quer && !playing;
 
   return (
     <>
@@ -93,7 +89,7 @@ export function AudioToggle() {
           playing
             ? "border-ambar/70 bg-breu/85 text-ambar"
             : "border-areia/25 bg-breu/75 text-areia/75 hover:border-ambar/60 hover:text-ambar"
-        } ${armado ? "animate-pulse border-ambar/50 text-ambar/80" : ""}`}
+        } ${esperando ? "animate-pulse border-ambar/50 text-ambar/80" : ""}`}
       >
         <span className="flex h-3.5 items-end gap-[3px]" aria-hidden>
           {[0, 1, 2, 3].map((i) => (

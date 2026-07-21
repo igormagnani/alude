@@ -134,7 +134,7 @@ export function Hero() {
         <div className="absolute inset-0 bg-gradient-to-t from-noite via-noite/40 to-noite/70" />
         <div className="relative z-10 flex flex-col items-center gap-7">
           <LogoNeon className="w-64" />
-          <h1 className="display text-3xl md:text-5xl">O anfitrião da música boa no Rio</h1>
+          <h1 className="display text-3xl md:text-5xl">O anfitrião da boa música no Rio</h1>
         </div>
       </header>
     );
@@ -148,7 +148,7 @@ export function Hero() {
     // 400svh = 300svh de scrub + a tela presa
     <div ref={ref} className="relative h-[400svh]">
       <h1 className="sr-only">
-        Alude, o anfitrião da música boa no Rio. Do warmup ao after.
+        Alude, o anfitrião da boa música no Rio. Do warmup ao after.
       </h1>
       <div className="sticky top-0 h-svh overflow-hidden bg-breu grain">
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />
@@ -167,7 +167,7 @@ export function Hero() {
           <p className="display max-w-5xl text-[clamp(2.2rem,7vw,6rem)]">
             O anfitrião da
             <br />
-            música boa no Rio
+            boa música no Rio
           </p>
         </div>
 

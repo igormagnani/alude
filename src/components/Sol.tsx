@@ -34,7 +34,7 @@ export function Sol() {
       <motion.div style={reduced ? undefined : { scale, y }} className="absolute inset-0">
         <video
           ref={videoRef}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover object-[50%_25%]"
           src="/media/sol-vertical.mp4"
           poster="/media/sol-poster.jpg"
           muted
@@ -57,9 +57,9 @@ export function Sol() {
           Sol da Meia Noite · Vista Joá
         </p>
         <p className="mt-5 text-base leading-relaxed text-areia/85 md:text-lg">
-          Mil pessoas, oito horas, a cidade inteira lá embaixo. A trilha é dançante, cantada,
+          Mais de mil pessoas, 8 horas, a cidade inteira lá embaixo. A trilha é dançante, cantada,
           groovada: música extrovertida, feita pra você olhar pro lado e puxar assunto. O Alude
-          é presença de casa, do warmup ao after.
+          é presença e autenticidade, do warmup ao after.
         </p>
       </div>
     </section>
