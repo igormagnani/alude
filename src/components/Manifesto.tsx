@@ -6,10 +6,8 @@ import { useScroller } from "./Scroller";
 
 const LINES = [
   { text: "A música de sempre toca em todo lugar.", accent: false },
-  { text: "Aqui você ouve a sua próxima preferida.", accent: true },
-  { text: "Pela primeira vez, e sem saber o nome ainda.", accent: false },
-  { text: "Nada disso vem pronto de casa.", accent: false },
-  { text: "Vem da pista, lida em tempo real.", accent: false },
+  { text: "A sua próxima preferida toca aqui.", accent: true },
+  { text: "Nem eu sabia qual seria.", accent: false },
 ];
 
 export function Manifesto() {
