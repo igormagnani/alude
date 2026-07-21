@@ -53,8 +53,10 @@ export function Numeros() {
   }
 
   return (
-    <section ref={ref} className="relative h-[280vh] bg-noite">
-      <div className="sticky top-0 flex h-svh items-center overflow-hidden">
+    // mesma conta do hero: o 100dvh cancela a viewport no divisor do progresso, então
+    // a barra de endereços do celular não faz a faixa horizontal saltar
+    <section ref={ref} className="relative h-[calc(180vh+100dvh)] bg-noite">
+      <div className="sticky top-0 flex h-[100lvh] items-center overflow-hidden">
         <motion.div ref={trackRef} style={{ x }} className="flex w-max gap-24 px-[7vw] md:gap-40">
           {ITEMS.map((it) => (
             <Item key={it.label} {...it} />

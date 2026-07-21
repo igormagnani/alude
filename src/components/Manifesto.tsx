@@ -4,9 +4,9 @@ import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 
 const LINES = [
-  { text: "Não toco pra impressionar.", accent: false },
-  { text: "Toco pra você ficar.", accent: true },
-  { text: "Se ninguém quer ir embora, deu certo.", accent: false },
+  { text: "Ninguém lembra da faixa das duas da manhã.", accent: false },
+  { text: "Todo mundo lembra da noite.", accent: true },
+  { text: "Meu trabalho é a noite inteira.", accent: false },
 ];
 
 export function Manifesto() {

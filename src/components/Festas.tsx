@@ -171,7 +171,7 @@ export function Festas() {
         <p className="text-[11px] uppercase tracking-[0.4em] text-ambar">Onde esse som já tocou</p>
       </div>
       <Row items={FESTAS.slice(0, terco)} dir="left" />
-      <Row items={[...FESTAS.slice(terco), "entre outras"]} dir="right" />
+      <Row items={FESTAS.slice(terco)} dir="right" />
       <div className="mx-auto mt-[12vh] max-w-4xl px-6">
         <p className="mb-6 text-[11px] uppercase tracking-[0.4em] text-areia/40 md:hidden">A rota</p>
         <Constelacao

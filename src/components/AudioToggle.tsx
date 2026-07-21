@@ -1,17 +1,62 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const KEY = "alude-som";
+const GESTOS = ["pointerdown", "touchend", "keydown"] as const;
 
 export function AudioToggle() {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const botaoRef = useRef<HTMLButtonElement>(null);
   const [playing, setPlaying] = useState(false);
-  const [hint, setHint] = useState(false);
+  const [armado, setArmado] = useState(false);
 
-  useEffect(() => {
-    setHint(localStorage.getItem(KEY) === "on");
+  const iniciar = useCallback(async () => {
+    const el = audioRef.current;
+    if (!el) return false;
+    el.volume = 0.5;
+    try {
+      await el.play();
+      setPlaying(true);
+      setArmado(false);
+      localStorage.setItem(KEY, "on");
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
+
+  // Site de DJ: a trilha nasce ligada. Só que todo navegador bloqueia áudio antes de um
+  // gesto do usuário, então tentamos tocar de cara e, se o bloqueio vier, deixamos armado
+  // pro primeiro toque em qualquer lugar da página. Quem já desligou uma vez (localStorage
+  // "off") continua no silêncio: preferência explícita ganha do padrão.
+  useEffect(() => {
+    if (localStorage.getItem(KEY) === "off") return;
+
+    let vivo = true;
+    let desarmar = () => {};
+
+    void (async () => {
+      if (await iniciar()) return;
+      if (!vivo) return;
+      setArmado(true);
+
+      const aoGesto = async (e: Event) => {
+        // toque no próprio botão é decisão dele: deixa o onClick resolver
+        if (e.target instanceof Node && botaoRef.current?.contains(e.target)) return;
+        // só desarma se realmente tocou: gesto que o navegador não aceitou como
+        // válido não pode custar a próxima chance
+        if (await iniciar()) desarmar();
+      };
+      desarmar = () => GESTOS.forEach((g) => window.removeEventListener(g, aoGesto));
+      GESTOS.forEach((g) => window.addEventListener(g, aoGesto));
+    })();
+
+    return () => {
+      vivo = false;
+      desarmar();
+    };
+  }, [iniciar]);
 
   const toggle = () => {
     const el = audioRef.current;
@@ -19,24 +64,18 @@ export function AudioToggle() {
     if (playing) {
       el.pause();
       setPlaying(false);
+      setArmado(false);
       localStorage.setItem(KEY, "off");
       return;
     }
-    el.volume = 0.5;
-    void el
-      .play()
-      .then(() => {
-        setPlaying(true);
-        setHint(false);
-        localStorage.setItem(KEY, "on");
-      })
-      .catch(() => {});
+    void iniciar();
   };
 
   return (
     <>
-      <audio ref={audioRef} src="/audio/magnetic-loop.mp3" loop preload="none" />
+      <audio ref={audioRef} src="/audio/magnetic-loop.mp3" loop preload="auto" />
       <button
+        ref={botaoRef}
         type="button"
         onClick={toggle}
         aria-pressed={playing}
@@ -45,7 +84,7 @@ export function AudioToggle() {
           playing
             ? "border-ambar/70 bg-breu/85 text-ambar"
             : "border-areia/25 bg-breu/75 text-areia/75 hover:border-ambar/60 hover:text-ambar"
-        } ${hint && !playing ? "animate-pulse" : ""}`}
+        } ${armado ? "animate-pulse border-ambar/50 text-ambar/80" : ""}`}
       >
         <span className="flex h-3.5 items-end gap-[3px]" aria-hidden>
           {[0, 1, 2, 3].map((i) => (

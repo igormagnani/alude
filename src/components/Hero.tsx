@@ -127,7 +127,7 @@ export function Hero() {
   if (reduced) {
     return (
       <header className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 text-center">
-        <Image src="/brand/hero-poster.jpg" alt="Alude no palco" fill preload className="object-cover opacity-45" sizes="100vw" />
+        <Image src="/brand/hero-poster.jpg" alt="Alude no palco" fill priority className="object-cover opacity-45" sizes="100vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-noite via-noite/40 to-noite/70" />
         <div className="relative z-10 flex flex-col items-center gap-7">
           <LogoNeon className="w-64" />
@@ -141,14 +141,18 @@ export function Hero() {
     "pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center";
 
   return (
-    <div ref={ref} className="relative h-[400vh]">
+    // 300vh de scrub + 100dvh de tela presa: o dvh cancela a altura da viewport na
+    // conta do progresso, então recolher a barra de endereços do celular não muda o
+    // divisor e o frame não pula. A tela presa usa lvh (constante) pra o canvas nunca
+    // ser redimensionado e recortado de novo.
+    <div ref={ref} className="relative h-[calc(300vh+100dvh)]">
       <h1 className="sr-only">
         Alude, o anfitrião da música boa no Rio. Do warmup ao after.
       </h1>
-      <div className="sticky top-0 h-svh overflow-hidden bg-breu grain">
+      <div className="sticky top-0 h-[100lvh] overflow-hidden bg-breu grain">
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />
         {!ready ? (
-          <Image src="/brand/hero-poster.jpg" alt="" fill preload className="object-cover" sizes="100vw" />
+          <Image src="/brand/hero-poster.jpg" alt="" fill priority className="object-cover" sizes="100vw" />
         ) : null}
 
         {/* leitura */}
