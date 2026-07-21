@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { PRESS_KIT } from "@/data/galeria";
 
 export function Booking() {
   return (
@@ -13,7 +14,7 @@ export function Booking() {
       <div className="absolute inset-0 bg-gradient-to-b from-noite via-noite/70 to-noite" />
       <div className="relative flex flex-col items-center gap-9">
         <p className="text-[11px] uppercase tracking-[0.4em] text-ambar">Booking</p>
-        <h2 className="display max-w-4xl text-[clamp(2.4rem,8vw,6.5rem)]">
+        <h2 className="display max-w-4xl text-[clamp(1.65rem,7.4vw,6.5rem)]">
           Leva essa energia
           <br />
           pra sua festa
@@ -38,6 +39,14 @@ export function Booking() {
             className="border border-areia/30 px-9 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-areia transition-colors hover:border-ambar hover:text-ambar"
           >
             Booking via Enkore
+          </a>
+          <a
+            href={PRESS_KIT}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="border border-areia/30 px-9 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-areia transition-colors hover:border-ambar hover:text-ambar"
+          >
+            Press kit
           </a>
         </div>
       </div>

@@ -164,7 +164,7 @@ export function Hero() {
         </div>
 
         <div ref={anfRef} style={{ opacity: 0 }} className={beatClass}>
-          <p className="display max-w-5xl text-[clamp(2.2rem,7vw,6rem)]">
+          <p className="display max-w-5xl text-[clamp(1.75rem,7.4vw,6rem)]">
             O anfitrião da
             <br />
             boa música no Rio
@@ -172,7 +172,7 @@ export function Hero() {
         </div>
 
         <div ref={warmRef} style={{ opacity: 0 }} className={beatClass}>
-          <p className="display max-w-5xl text-[clamp(2.2rem,7vw,6rem)]">
+          <p className="display max-w-5xl text-[clamp(1.75rem,7.4vw,6rem)]">
             Do warmup
             <br />
             <span className="text-ambar">ao after</span>

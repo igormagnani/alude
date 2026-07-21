@@ -3,6 +3,7 @@ import { Manifesto } from "@/components/Manifesto";
 import { Numeros } from "@/components/Numeros";
 import { Sol } from "@/components/Sol";
 import { Festas } from "@/components/Festas";
+import { Galeria } from "@/components/Galeria";
 import { Curadoria } from "@/components/Curadoria";
 import { Faixa } from "@/components/Faixa";
 import { Booking, Rodape } from "@/components/Booking";
@@ -16,6 +17,7 @@ export default function Home() {
       <Numeros />
       <Sol />
       <Festas />
+      <Galeria />
       <Curadoria />
       <Faixa />
       <Booking />
