@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
 import { Scroller } from "@/components/Scroller";
-import { Analytics, GtmNoScript } from "@/components/Analytics";
+import { TagsDeMedicao, GtmNoScript } from "@/components/Analytics";
 import { JSON_LD, SITE_URL } from "@/lib/site";
 
 const archivo = Archivo({
@@ -43,6 +43,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={`${archivo.variable} ${inter.variable} h-full antialiased`}>
+      <head>
+        <TagsDeMedicao />
+      </head>
       <body className="h-full overflow-hidden">
         <GtmNoScript />
         <script
@@ -51,7 +54,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         />
         <Scroller>{children}</Scroller>
-        <Analytics />
       </body>
     </html>
   );
