@@ -5,7 +5,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from "motion/react"
 import { useScroller } from "./Scroller";
 
 const LINES = [
-  { text: "A música de sempre toca em todo lugar.", accent: false },
+  { text: "Não toco as músicas óbvias de sempre.", accent: false },
   { text: "Eu te apresento a sua próxima música preferida.", accent: true },
   { text: "Prepare-se pra se surpreender em todo set.", accent: false },
 ];

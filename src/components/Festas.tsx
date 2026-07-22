@@ -7,7 +7,7 @@ const ANCORAS = new Set(["Isso Não é Uma Festa", "D.Edge", "Privilège Búzios
 const FESTAS = [
   "Isso Não é Uma Festa", "Aldeia Lagoa", "Privilège Búzios", "Privilège Juiz de Fora",
   "C688", "Festa Tulum", "Pink Elephant", "D.Edge", "Tantra", "Sutton", "Selenza",
-  "Haya Réveillon", "FeijoaJay", "AVA · Dash · Boox", "Holy Snow", "Casa Sounds",
+  "Haya Réveillon", "FeijoaJay", "AVA · Dash · Boox", "Holy Snow", "Casa Sounds", "Passatempo",
   "Festival Love Park", "Baretto Londra", "Festa Boato", "Conexão RJxSP", "ARCVS",
   "JAM", "VEM!", "Jungle",
 ];
