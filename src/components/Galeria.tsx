@@ -38,7 +38,7 @@ export function Galeria() {
   return (
     <section ref={ref} className="bg-noite py-[16vh]">
       <div className="mx-auto max-w-6xl px-6">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-ambar">Registro</p>
+        <p className="text-[11px] uppercase tracking-[0.4em] text-ambar" aria-hidden>Registro</p>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-6">
           <h2 className="display text-[clamp(1.9rem,5vw,4rem)]">
             A noite

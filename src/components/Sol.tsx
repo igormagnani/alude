@@ -53,9 +53,9 @@ export function Sol() {
         }}
       />
       <div className="absolute bottom-[10vh] left-6 max-w-lg md:left-[8vw]">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-ambar">
+        <h2 className="text-[11px] uppercase tracking-[0.4em] text-ambar">
           Sol da Meia Noite · Vista Joá
-        </p>
+        </h2>
         <p className="mt-5 text-base leading-relaxed text-areia/85 md:text-lg">
           Mais de mil pessoas, 8 horas, a cidade inteira lá embaixo. A trilha é dançante, cantada,
           groovada: música extrovertida, feita pra você olhar pro lado e puxar assunto. O Alude

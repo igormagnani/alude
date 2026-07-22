@@ -18,6 +18,7 @@ export function Manifesto() {
 
   return (
     <section ref={ref} className="bg-breu px-6 py-[22vh] md:py-[26vh]">
+      <h2 className="sr-only">O que o Alude toca</h2>
       <div className="mx-auto max-w-6xl">
         {LINES.map((l, i) => (
           <Line

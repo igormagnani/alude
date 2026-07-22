@@ -45,6 +45,7 @@ export function Numeros() {
   if (reduced) {
     return (
       <section className="bg-noite px-6 py-[16vh]">
+        <h2 className="sr-only">Alude em números</h2>
         <div className="mx-auto flex max-w-5xl flex-col gap-14">
           {ITEMS.map((it) => (
             <Item key={it.label} {...it} />
@@ -56,6 +57,7 @@ export function Numeros() {
 
   return (
     <section ref={ref} className="relative h-[280svh] bg-noite">
+      <h2 className="sr-only">Alude em números</h2>
       <div className="sticky top-0 flex h-svh items-center overflow-hidden">
         <motion.div ref={trackRef} style={{ x }} className="flex w-max gap-24 px-[7vw] md:gap-40">
           {ITEMS.map((it) => (

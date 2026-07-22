@@ -168,7 +168,7 @@ export function Festas() {
   return (
     <section className="bg-breu py-[14vh]">
       <div className="mx-auto mb-14 max-w-6xl px-6">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-ambar">Onde esse som já tocou</p>
+        <h2 className="text-[11px] uppercase tracking-[0.4em] text-ambar">Onde esse som já tocou</h2>
       </div>
       <Row items={FESTAS.slice(0, terco)} dir="left" />
       <Row items={FESTAS.slice(terco)} dir="right" />
