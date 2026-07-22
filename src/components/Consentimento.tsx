@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const KEY = "alude-consentimento";
+import { CONSENT_EVENTO, gravarConsentimento, lerConsentimento } from "@/lib/consentimento";
 
 declare global {
   interface Window {
@@ -10,35 +9,39 @@ declare global {
   }
 }
 
-function atualizar(estado: "granted" | "denied") {
-  // fala com o Consent Mode pelo dataLayer: não depende do gtag já ter carregado
+function avisarGoogle(aceito: boolean) {
+  const estado = aceito ? "granted" : "denied";
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push(["consent", "update", { analytics_storage: estado }]);
+  // o pixel da Meta entrou, então o consentimento cobre publicidade também
+  window.dataLayer.push([
+    "consent",
+    "update",
+    {
+      analytics_storage: estado,
+      ad_storage: estado,
+      ad_user_data: estado,
+      ad_personalization: estado,
+    },
+  ]);
 }
 
 /**
- * Banner de consentimento. O site já nasce com armazenamento NEGADO (ver Analytics.tsx),
- * então quem nunca responde nada continua sem cookie: o banner só serve pra liberar,
- * nunca pra restringir. Some pra sempre depois da escolha.
+ * Banner de consentimento. O site nasce com armazenamento NEGADO e o pixel da Meta
+ * nem carrega, então quem ignora o aviso não é rastreado: o banner só libera.
  */
 export function Consentimento() {
   const [visivel, setVisivel] = useState(false);
 
   useEffect(() => {
-    try {
-      if (!localStorage.getItem(KEY)) setVisivel(true);
-    } catch {
-      // navegador sem storage: não insiste
-    }
+    if (!lerConsentimento()) setVisivel(true);
+    const ouvir = () => setVisivel(false);
+    window.addEventListener(CONSENT_EVENTO, ouvir);
+    return () => window.removeEventListener(CONSENT_EVENTO, ouvir);
   }, []);
 
   const responder = (aceito: boolean) => {
-    try {
-      localStorage.setItem(KEY, aceito ? "aceito" : "recusado");
-    } catch {
-      /* segue sem lembrar da escolha */
-    }
-    atualizar(aceito ? "granted" : "denied");
+    avisarGoogle(aceito);
+    gravarConsentimento(aceito ? "aceito" : "recusado");
     setVisivel(false);
   };
 
@@ -52,8 +55,8 @@ export function Consentimento() {
       className="fixed inset-x-4 bottom-24 z-[55] border border-areia/20 bg-breu/95 p-5 backdrop-blur-sm md:inset-x-auto md:bottom-6 md:left-6 md:max-w-sm"
     >
       <p className="text-sm leading-relaxed text-areia/80">
-        Uso cookies só pra medir quanta gente passa por aqui. Nada de anúncio, nada de
-        vender seus dados.
+        Uso cookies pra medir quanta gente passa por aqui e pra alcançar de novo quem já
+        veio, nos anúncios. Nada de vender seus dados.
       </p>
       <div className="mt-4 flex gap-3">
         <button
@@ -61,7 +64,7 @@ export function Consentimento() {
           onClick={() => responder(true)}
           className="bg-ambar px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-breu transition-transform hover:scale-[1.03]"
         >
-          Pode medir
+          Pode usar
         </button>
         <button
           type="button"

@@ -11,6 +11,8 @@ export const SITE_URL = "https://www.aludemusic.com";
  */
 export const GA4_ID = "G-L4KN85165F";
 export const GTM_ID = "GTM-W6BTWZNV";
+/** Pixel da Meta: só carrega depois do consentimento, ver MetaPixel.tsx */
+export const META_PIXEL_ID = "2813325202379839";
 
 export const PERFIS = {
   instagram: "https://www.instagram.com/aludemusic/",

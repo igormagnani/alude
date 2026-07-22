@@ -9,6 +9,7 @@ import { Faixa } from "@/components/Faixa";
 import { Booking, Rodape } from "@/components/Booking";
 import { AudioToggle } from "@/components/AudioToggle";
 import { Consentimento } from "@/components/Consentimento";
+import { MetaPixel } from "@/components/MetaPixel";
 
 export default function Home() {
   return (
@@ -25,6 +26,7 @@ export default function Home() {
       <Rodape />
       <AudioToggle />
       <Consentimento />
+      <MetaPixel />
     </main>
   );
 }
