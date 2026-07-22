@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
 import { Scroller } from "@/components/Scroller";
-import { Analytics } from "@/components/Analytics";
+import { Analytics, GtmNoScript } from "@/components/Analytics";
 import { JSON_LD, SITE_URL } from "@/lib/site";
 
 const archivo = Archivo({
@@ -44,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" className={`${archivo.variable} ${inter.variable} h-full antialiased`}>
       <body className="h-full overflow-hidden">
+        <GtmNoScript />
         <script
           type="application/ld+json"
           // conteúdo é nosso e estático, não vem de entrada de usuário

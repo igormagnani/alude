@@ -1,6 +1,17 @@
 /** Endereço canônico. O apex redireciona pra cá, então o www é a forma oficial. */
 export const SITE_URL = "https://www.aludemusic.com";
 
+/**
+ * IDs de medição. Não são segredo (viajam no HTML de qualquer visitante), então ficam
+ * no código: assim preview e produção medem igual, sem depender de variável de ambiente.
+ *
+ * ATENÇÃO A DUPLICIDADE: o GA4 é disparado AQUI, pelo gtag. Se alguém criar uma tag
+ * "Configuração do GA4" dentro do GTM apontando pro mesmo G-, todo pageview passa a
+ * contar duas vezes. Se um dia o GA4 for movido pra dentro do GTM, apague o gtag daqui.
+ */
+export const GA4_ID = "G-L4KN85165F";
+export const GTM_ID = "GTM-W6BTWZNV";
+
 export const PERFIS = {
   instagram: "https://www.instagram.com/aludemusic/",
   spotify: "https://open.spotify.com/artist/0y1hTVsxI6ZHval2nbIZJH",
