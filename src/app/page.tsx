@@ -8,6 +8,7 @@ import { Curadoria } from "@/components/Curadoria";
 import { Faixa } from "@/components/Faixa";
 import { Booking, Rodape } from "@/components/Booking";
 import { AudioToggle } from "@/components/AudioToggle";
+import { Consentimento } from "@/components/Consentimento";
 
 export default function Home() {
   return (
@@ -23,6 +24,7 @@ export default function Home() {
       <Booking />
       <Rodape />
       <AudioToggle />
+      <Consentimento />
     </main>
   );
 }
