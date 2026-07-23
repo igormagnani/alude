@@ -1,19 +1,24 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useReducedMotion } from "motion/react";
 
 const ConstelacaoCeu = dynamic(() => import("./ConstelacaoCeu"), { ssr: false });
 
+const assinaNada = () => () => {};
+
 /** WebGL de verdade disponível? Sem ele (ou com reduced motion) fica o céu em SVG. */
+let webglCache: boolean | null = null;
 function temWebGL() {
+  if (webglCache !== null) return webglCache;
   try {
     const c = document.createElement("canvas");
-    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+    webglCache = !!(c.getContext("webgl2") || c.getContext("webgl"));
   } catch {
-    return false;
+    webglCache = false;
   }
+  return webglCache;
 }
 
 const ANCORAS = new Set(["Isso Não é Uma Festa", "D.Edge", "Privilège Búzios", "Privilège Juiz de Fora"]);
@@ -180,11 +185,10 @@ function Constelacao({
 export function Festas() {
   const terco = Math.ceil(FESTAS.length / 2);
   const reduced = useReducedMotion();
-  // null = ainda decidindo: não renderiza céu nenhum, senão o SVG pisca e some no mount
-  const [ceu3d, setCeu3d] = useState<boolean | null>(null);
-  useEffect(() => {
-    setCeu3d(!reduced && temWebGL());
-  }, [reduced]);
+  // no servidor ainda não dá pra decidir (null): não renderiza céu nenhum,
+  // senão o SVG pisca e some quando o 3D assume no cliente
+  const montado = useSyncExternalStore(assinaNada, () => true, () => false);
+  const ceu3d = montado ? !reduced && temWebGL() : null;
 
   return (
     // pt só: com o céu 3D no fim, padding embaixo viraria uma faixa de breu entre o amanhecer e o Booking

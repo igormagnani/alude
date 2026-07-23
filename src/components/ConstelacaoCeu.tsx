@@ -51,8 +51,7 @@ function mulberry32(seed: number) {
 }
 
 function Estrelas({ beatRef }: { beatRef: React.MutableRefObject<number> }) {
-  const ref = useRef<THREE.Points>(null);
-  const { geo, mat } = useMemo(() => {
+  const recursos = useMemo(() => {
     const rand = mulberry32(7);
     const n = 420;
     const pos = new Float32Array(n * 3);
@@ -74,12 +73,20 @@ function Estrelas({ beatRef }: { beatRef: React.MutableRefObject<number> }) {
     });
     return { geo, mat };
   }, []);
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
+  // a mutação por frame passa por ref: é o escape hatch sancionado, o compiler aceita
+  const matRef = useRef(recursos.mat);
+  useEffect(() => {
+    matRef.current = recursos.mat;
+    return () => {
+      recursos.geo.dispose();
+      recursos.mat.dispose();
+    };
+  }, [recursos]);
   useFrame(() => {
     // as estrelas de fundo respiram com o grave da trilha
-    mat.size = 0.075 + beatRef.current * 0.025;
+    matRef.current.size = 0.075 + beatRef.current * 0.025;
   });
-  return <points ref={ref} geometry={geo} material={mat} />;
+  return <points geometry={recursos.geo} material={recursos.mat} />;
 }
 
 function Cidade({
@@ -139,37 +146,41 @@ function Cidade({
 }
 
 function Linhas({ retrato, litRef }: { retrato: boolean; litRef: React.MutableRefObject<number[]> }) {
-  const mats = useRef<THREE.LineBasicMaterial[]>([]);
-  const linhas = useMemo(() => {
+  // objetos inteiros nascem no useMemo (nada de construir Line dentro do JSX a cada render)
+  const objetos = useMemo(() => {
     const rio = posicao(RIO, retrato);
     return CIDADES.slice(0, RIO).map((_, i) => {
       const geo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(...posicao(i, retrato)),
         new THREE.Vector3(...rio),
       ]);
-      return geo;
+      const mat = new THREE.LineBasicMaterial({
+        color: new THREE.Color("#f0e6d7"),
+        transparent: true,
+        opacity: 0,
+      });
+      return new THREE.Line(geo, mat);
     });
   }, [retrato]);
-  useEffect(() => () => linhas.forEach((g) => g.dispose()), [linhas]);
+  const objetosRef = useRef(objetos);
+  useEffect(() => {
+    objetosRef.current = objetos;
+    return () =>
+      objetos.forEach((l) => {
+        l.geometry.dispose();
+        (l.material as THREE.Material).dispose();
+      });
+  }, [objetos]);
   useFrame(() => {
-    mats.current.forEach((m, i) => {
-      if (m) m.opacity = Math.min(litRef.current[i] ?? 0, litRef.current[RIO] ?? 0) * 0.4;
+    objetosRef.current.forEach((l, i) => {
+      (l.material as THREE.LineBasicMaterial).opacity =
+        Math.min(litRef.current[i] ?? 0, litRef.current[RIO] ?? 0) * 0.4;
     });
   });
   return (
     <>
-      {linhas.map((geo, i) => (
-        <primitive
-          key={i}
-          object={new THREE.Line(
-            geo,
-            (mats.current[i] ??= new THREE.LineBasicMaterial({
-              color: new THREE.Color("#f0e6d7"),
-              transparent: true,
-              opacity: 0,
-            }))
-          )}
-        />
+      {objetos.map((l, i) => (
+        <primitive key={i} object={l} />
       ))}
     </>
   );

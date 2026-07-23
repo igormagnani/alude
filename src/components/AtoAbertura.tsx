@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { useScroll, useMotionValueEvent, useReducedMotion } from "motion/react";
 import { LogoNeon } from "./LogoNeon";
@@ -66,6 +66,9 @@ function beatLocal(p: number, [a, b]: readonly [number, number]) {
 
 const fmt = new Intl.NumberFormat("pt-BR");
 
+// assina nada e nunca notifica: só serve pra distinguir servidor (false) de cliente (true)
+const assinaNada = () => () => {};
+
 export function AtoAbertura() {
   const ref = useRef<HTMLElement | null>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -88,8 +91,7 @@ export function AtoAbertura() {
   const [ready, setReady] = useState(false);
   // o servidor sempre renderiza o ato completo; o fallback só entra depois de montar,
   // senão o branch estrutural diverge do HTML do servidor e a hidratação estoura
-  const [montado, setMontado] = useState(false);
-  useEffect(() => setMontado(true), []);
+  const montado = useSyncExternalStore(assinaNada, () => true, () => false);
 
   const scroller = useScroller();
   const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start start", "end end"] });
@@ -125,7 +127,6 @@ export function AtoAbertura() {
       alive = false;
       cancelAnimationFrame(rafRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduced]);
 
   function draw(index: number) {

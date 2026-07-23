@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useScroller } from "./Scroller";
+
+const assinaNada = () => () => {};
 
 const LINES = [
   { text: "Não toco as músicas óbvias de sempre.", accent: false },
@@ -13,6 +15,9 @@ const LINES = [
 export function Manifesto() {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
+  // o servidor renderiza a versão animada (palavra a palavra); trocar de estrutura
+  // antes de montar estouraria a hidratação no modo reduced
+  const montado = useSyncExternalStore(assinaNada, () => true, () => false);
   const scroller = useScroller();
   const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start 0.9", "end 0.35"] });
 
@@ -26,7 +31,7 @@ export function Manifesto() {
             progress={scrollYProgress}
             index={i}
             total={LINES.length}
-            reduced={!!reduced}
+            reduced={montado && !!reduced}
             {...l}
           />
         ))}
