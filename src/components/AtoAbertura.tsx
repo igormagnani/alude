@@ -328,7 +328,8 @@ export function AtoAbertura() {
             <p className="display leading-none text-[clamp(3.4rem,12vw,10rem)] text-areia">
               <span ref={(el) => { numValRefs.current[i] = el; }}>0</span>
               {it.sufixo}
-              <span className="ml-4 align-baseline text-ambar text-[clamp(1.2rem,2.8vw,2.4rem)] tracking-[0.01em] [word-spacing:0.18em]">
+              {/* no celular a unidade desce pra linha própria: quebrar no meio ("FESTAS E / CLUBES") ficava torto */}
+              <span className="mt-1 block text-ambar text-[clamp(1.2rem,2.8vw,2.4rem)] tracking-[0.01em] [word-spacing:0.18em] md:mt-0 md:ml-4 md:inline md:align-baseline">
                 {it.unit}
               </span>
             </p>

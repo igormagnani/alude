@@ -4,23 +4,38 @@ import { useEffect } from "react";
 
 /**
  * Liga o <audio> do site a um AnalyserNode e distribui um nível de grave (0..1)
- * pra quem quiser pulsar junto. createMediaElementSource só pode existir UMA vez
- * por elemento, então o grafo é singleton e fica: source → analyser → destination
- * (sem o destination no fim, o site emudece).
+ * pra quem quiser pulsar junto.
+ *
+ * REGRA DE OURO: o som vem antes do pulso. createMediaElementSource sequestra a
+ * saída do elemento pra dentro do AudioContext, e se o contexto não estiver
+ * rodando de verdade o site fica MUDO com o botão dizendo "som on" (aconteceu
+ * no iPhone). Então:
+ *  - iOS: nunca cria o grafo (a chavinha de silencioso do aparelho silencia
+ *    WebAudio; áudio direto do elemento é o único caminho confiável). O hero
+ *    simplesmente não pulsa lá.
+ *  - Resto: só roteia DEPOIS do AudioContext confirmar state === "running".
  */
 
 let audioEl: HTMLAudioElement | null = null;
 let ctx: AudioContext | null = null;
 let analyser: AnalyserNode | null = null;
 let bins: Uint8Array<ArrayBuffer> | null = null;
+let tentandoGraph = false;
 let raf = 0;
 let level = 0;
 
 const subs = new Set<(v: number) => void>();
 
+function ehIOS() {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 export function registerAudioEl(el: HTMLAudioElement) {
   audioEl = el;
-  // O AudioContext nasce suspenso sem gesto; o play (que já exige gesto) destrava.
   el.addEventListener("play", () => {
     ensureGraph();
     void ctx?.resume();
@@ -30,20 +45,39 @@ export function registerAudioEl(el: HTMLAudioElement) {
 }
 
 function ensureGraph() {
-  if (!audioEl || ctx) return;
+  if (!audioEl || ctx || tentandoGraph || ehIOS()) return;
+  tentandoGraph = true;
   try {
-    ctx = new AudioContext();
-    const src = ctx.createMediaElementSource(audioEl);
-    analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.6;
-    bins = new Uint8Array(analyser.frequencyBinCount);
-    src.connect(analyser);
-    analyser.connect(ctx.destination);
+    const c = new AudioContext();
+    c.resume()
+      .then(() => {
+        if (c.state !== "running" || ctx || !audioEl) {
+          // sem contexto rodando não se sequestra saída de áudio de ninguém
+          void c.close();
+          tentandoGraph = false;
+          return;
+        }
+        try {
+          const src = c.createMediaElementSource(audioEl);
+          const a = c.createAnalyser();
+          a.fftSize = 256;
+          a.smoothingTimeConstant = 0.6;
+          src.connect(a);
+          a.connect(c.destination);
+          ctx = c;
+          analyser = a;
+          bins = new Uint8Array(a.frequencyBinCount);
+          startLoop();
+        } catch {
+          void c.close();
+        }
+      })
+      .catch(() => {
+        void c.close();
+        tentandoGraph = false;
+      });
   } catch {
-    // navegador sem Web Audio: o site segue sem pulso
-    ctx = null;
-    analyser = null;
+    tentandoGraph = false;
   }
 }
 
@@ -63,7 +97,7 @@ function tick() {
 }
 
 function startLoop() {
-  if (!raf && subs.size > 0) raf = requestAnimationFrame(tick);
+  if (!raf && subs.size > 0 && analyser) raf = requestAnimationFrame(tick);
 }
 
 function stopLoopSoon() {
