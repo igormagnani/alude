@@ -3,93 +3,91 @@
 import { useEffect } from "react";
 
 /**
- * Liga o <audio> do site a um AnalyserNode e distribui um nível de grave (0..1)
- * pra quem quiser pulsar junto.
+ * Distribui um nível de grave (0..1) da trilha pra quem quiser pulsar junto.
  *
- * REGRA DE OURO: o som vem antes do pulso. createMediaElementSource sequestra a
- * saída do elemento pra dentro do AudioContext, e se o contexto não estiver
- * rodando de verdade o site fica MUDO com o botão dizendo "som on" (aconteceu
- * no iPhone). Então:
- *  - iOS: nunca cria o grafo (a chavinha de silencioso do aparelho silencia
- *    WebAudio; áudio direto do elemento é o único caminho confiável). O hero
- *    simplesmente não pulsa lá.
- *  - Resto: só roteia DEPOIS do AudioContext confirmar state === "running".
+ * LIÇÃO APRENDIDA (da pior forma, em produção): rotear o <audio> por
+ * createMediaElementSource sequestra a saída do elemento pro AudioContext, e
+ * qualquer contexto que não rode de verdade (iOS no silencioso, Brave com
+ * proteções, resume pendente) deixa o site MUDO com o botão dizendo "som on".
+ *
+ * Então aqui NINGUÉM toca na saída de áudio: o MP3 é baixado (cache do próprio
+ * player), decodificado num OfflineAudioContext (que não tem saída nenhuma) e
+ * vira um envelope de energia grave pré-computado. Em playback, o pulso é só
+ * uma leitura de array indexada por el.currentTime. Som e efeito ficam 100%
+ * independentes, em toda plataforma.
  */
 
+const JANELA = 0.05; // segundos por amostra do envelope
+const TAXA = 16000; // decodificar reamostrado: memória e CPU mínimas
+
 let audioEl: HTMLAudioElement | null = null;
-let ctx: AudioContext | null = null;
-let analyser: AnalyserNode | null = null;
-let bins: Uint8Array<ArrayBuffer> | null = null;
-let tentandoGraph = false;
+let envelope: Float32Array | null = null;
+let dur = 0;
+let carregando = false;
 let raf = 0;
 let level = 0;
 
 const subs = new Set<(v: number) => void>();
 
-function ehIOS() {
-  if (typeof navigator === "undefined") return false;
-  return (
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  );
-}
-
 export function registerAudioEl(el: HTMLAudioElement) {
   audioEl = el;
   el.addEventListener("play", () => {
-    ensureGraph();
-    void ctx?.resume();
+    void prepararEnvelope();
     startLoop();
   });
   el.addEventListener("pause", stopLoopSoon);
+  // prepara em idle mesmo antes do play: o pulso já nasce pronto
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(() => void prepararEnvelope(), { timeout: 6000 });
+  } else {
+    window.setTimeout(() => void prepararEnvelope(), 2500);
+  }
 }
 
-function ensureGraph() {
-  if (!audioEl || ctx || tentandoGraph || ehIOS()) return;
-  tentandoGraph = true;
+async function prepararEnvelope() {
+  if (envelope || carregando || !audioEl) return;
+  carregando = true;
   try {
-    const c = new AudioContext();
-    c.resume()
-      .then(() => {
-        if (c.state !== "running" || ctx || !audioEl) {
-          // sem contexto rodando não se sequestra saída de áudio de ninguém
-          void c.close();
-          tentandoGraph = false;
-          return;
-        }
-        try {
-          const src = c.createMediaElementSource(audioEl);
-          const a = c.createAnalyser();
-          a.fftSize = 256;
-          a.smoothingTimeConstant = 0.6;
-          src.connect(a);
-          a.connect(c.destination);
-          ctx = c;
-          analyser = a;
-          bins = new Uint8Array(a.frequencyBinCount);
-          startLoop();
-        } catch {
-          void c.close();
-        }
-      })
-      .catch(() => {
-        void c.close();
-        tentandoGraph = false;
-      });
+    const src = audioEl.currentSrc || audioEl.src;
+    const buf = await (await fetch(src)).arrayBuffer();
+    // OfflineAudioContext: decodifica e reamostra sem existir saída de áudio
+    const off = new OfflineAudioContext(1, 1, TAXA);
+    const audio = await off.decodeAudioData(buf);
+    const ch = audio.getChannelData(0);
+    const porJanela = Math.round(audio.sampleRate * JANELA);
+    const n = Math.ceil(ch.length / porJanela);
+    const env = new Float32Array(n);
+    // passa-baixa simples antes do RMS: o kick é quem comanda o pulso
+    let lp = 0;
+    const alpha = 0.08;
+    for (let j = 0; j < n; j++) {
+      let soma = 0;
+      const ini = j * porJanela;
+      const fim = Math.min(ch.length, ini + porJanela);
+      for (let i = ini; i < fim; i++) {
+        lp += alpha * (ch[i] - lp);
+        soma += lp * lp;
+      }
+      env[j] = Math.sqrt(soma / Math.max(1, fim - ini));
+    }
+    let pico = 0;
+    for (let j = 0; j < n; j++) pico = Math.max(pico, env[j]);
+    if (pico > 0) for (let j = 0; j < n; j++) env[j] /= pico;
+    envelope = env;
+    dur = audio.duration;
+    startLoop();
   } catch {
-    tentandoGraph = false;
+    // sem envelope o site segue normal, só não pulsa
+  } finally {
+    carregando = false;
   }
 }
 
 function tick() {
   raf = 0;
-  if (!analyser || !bins || !audioEl || audioEl.paused || subs.size === 0) return;
-  analyser.getByteFrequencyData(bins);
-  // média dos bins graves (kick vive embaixo do espectro)
-  let soma = 0;
-  const n = 9;
-  for (let i = 0; i < n; i++) soma += bins[i];
-  const bruto = soma / n / 255;
+  if (!envelope || !audioEl || audioEl.paused || subs.size === 0 || dur === 0) return;
+  const t = audioEl.currentTime % dur;
+  const bruto = envelope[Math.min(envelope.length - 1, Math.floor(t / JANELA))] ?? 0;
   // suavização assimétrica: sobe rápido no ataque, desce devagar
   level = bruto > level ? level * 0.55 + bruto * 0.45 : level * 0.88 + bruto * 0.12;
   subs.forEach((cb) => cb(level));
@@ -97,7 +95,7 @@ function tick() {
 }
 
 function startLoop() {
-  if (!raf && subs.size > 0 && analyser) raf = requestAnimationFrame(tick);
+  if (!raf && subs.size > 0 && envelope) raf = requestAnimationFrame(tick);
 }
 
 function stopLoopSoon() {
