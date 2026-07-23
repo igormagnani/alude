@@ -180,7 +180,8 @@ function Constelacao({
 export function Festas() {
   const terco = Math.ceil(FESTAS.length / 2);
   const reduced = useReducedMotion();
-  const [ceu3d, setCeu3d] = useState(false);
+  // null = ainda decidindo: não renderiza céu nenhum, senão o SVG pisca e some no mount
+  const [ceu3d, setCeu3d] = useState<boolean | null>(null);
   useEffect(() => {
     setCeu3d(!reduced && temWebGL());
   }, [reduced]);
@@ -193,7 +194,9 @@ export function Festas() {
       </div>
       <Row items={FESTAS.slice(0, terco)} dir="left" />
       <Row items={FESTAS.slice(terco)} dir="right" />
-      {ceu3d ? (
+      {ceu3d === null ? (
+        <div className="h-svh" aria-hidden />
+      ) : ceu3d ? (
         <div className="mt-[10vh]">
           <ConstelacaoCeu />
         </div>
