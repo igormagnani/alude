@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { registerAudioEl } from "@/lib/audio-bus";
 import { useScroller } from "./Scroller";
 
 const KEY = "alude-som";
@@ -33,6 +34,10 @@ export function AudioToggle() {
 
   useEffect(() => {
     setQuer(localStorage.getItem(KEY) !== "off");
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) registerAudioEl(audioRef.current);
   }, []);
 
   // Site de DJ: a trilha nasce ligada. Como o navegador bloqueia áudio antes de um gesto,
