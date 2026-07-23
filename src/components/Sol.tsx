@@ -49,7 +49,7 @@ export function Sol() {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to top, rgba(5,6,10,0.96) 0%, rgba(5,6,10,0.88) 14%, rgba(5,6,10,0.58) 32%, rgba(5,6,10,0.24) 52%, rgba(5,6,10,0.06) 74%, rgba(5,6,10,0.16) 100%)",
+            "linear-gradient(to top, rgba(5,6,10,0.88) 0%, rgba(5,6,10,0.66) 16%, rgba(5,6,10,0.28) 34%, rgba(5,6,10,0.06) 46%, transparent 60%)",
         }}
       />
       <div className="absolute bottom-[10vh] left-6 max-w-lg md:left-[8vw]">

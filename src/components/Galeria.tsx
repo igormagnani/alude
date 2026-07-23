@@ -55,9 +55,10 @@ export function Galeria() {
           </a>
         </div>
 
+        {/* colunas desiguais: crops grandes e pequenos convivendo = ritmo de fotolivro */}
         <div
           className="mt-12 grid gap-3 md:gap-4"
-          style={{ gridTemplateColumns: `repeat(${colunas}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: colunas === 3 ? "1.55fr 1fr 1.2fr" : "1.25fr 1fr" }}
         >
           {distribuir(GALERIA, colunas).map((coluna, c) => (
             <Coluna
