@@ -190,16 +190,11 @@ export function Festas() {
   const montado = useSyncExternalStore(assinaNada, () => true, () => false);
   const ceu3d = montado ? !reduced && temWebGL() : null;
 
-  // o chunk do céu 3D (three + r3f) começa a baixar assim que o navegador respira,
-  // pra constelação já estar pronta quando a pessoa chegar nela
+  // o chunk do céu 3D (three + r3f) baixa logo depois do primeiro paint,
+  // pra constelação já estar compilada quando a pessoa chegar nela
   useEffect(() => {
     if (!ceu3d) return;
-    const puxar = () => void import("./ConstelacaoCeu");
-    if (typeof window.requestIdleCallback === "function") {
-      const idle = window.requestIdleCallback(puxar, { timeout: 4000 });
-      return () => window.cancelIdleCallback(idle);
-    }
-    const t = window.setTimeout(puxar, 800);
+    const t = window.setTimeout(() => void import("./ConstelacaoCeu"), 300);
     return () => window.clearTimeout(t);
   }, [ceu3d]);
 

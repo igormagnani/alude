@@ -108,7 +108,7 @@ export function AudioToggle() {
           ))}
         </span>
         <span className="text-[9px] font-semibold uppercase tracking-[0.28em]">
-          {playing ? "som on" : "som off"}
+          {playing ? "som on" : esperando ? "ligar o som" : "som off"}
         </span>
       </button>
     </>

@@ -33,8 +33,9 @@ export const GALERIA: Midia[] = [
   { tipo: "foto", src: "/galeria/rio.webp", w: 1600, h: 1068, alt: "Alude saltando num mirante do Rio com a cidade e o mar ao pôr do sol" },
   { tipo: "foto", src: "/galeria/vermelho.webp", w: 1068, h: 1600, alt: "Alude nos controles sob luz vermelha" },
   { tipo: "foto", src: "/galeria/sol-bandeira.webp", w: 1023, h: 678, alt: "Alude erguendo a bandeira da Sol da Meia Noite" },
-  { tipo: "foto", src: "/galeria/cristo.webp", w: 1280, h: 1600, alt: "Estrutura de DJ montada aos pés do Cristo Redentor, no Rio" },
+  // de-costas antes do cristo de propósito: índice 14 cai na coluna da DIREITA no desktop
   { tipo: "foto", src: "/galeria/de-costas.webp", w: 1600, h: 1068, alt: "Alude de costas na cabine, de frente para a pista e as luzes da cidade" },
+  { tipo: "foto", src: "/galeria/cristo.webp", w: 1280, h: 1600, alt: "Estrutura de DJ montada aos pés do Cristo Redentor, no Rio" },
 ];
 
 export const PRESS_KIT =

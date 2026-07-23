@@ -247,11 +247,13 @@ export default function ConstelacaoCeu() {
 
   useBeat((v) => { beatRef.current = v; });
 
-  // o canvas nasce cedo (2 telas antes) e FICA vivo depois de ligar: desmontar e
-  // remontar o WebGL era o que fazia a constelação "demorar pra aparecer"
+  // o canvas liga sozinho ~1,6s depois do site abrir (fora do caminho do LCP) e FICA
+  // vivo pra sempre: contexto WebGL, shaders e cena já compilados muito antes de
+  // alguém chegar na seção. O IO é só atalho pra quem voa direto pra cá.
   useEffect(() => {
+    const t = window.setTimeout(() => setLigado(true), 1600);
     const el = ref.current;
-    if (!el) return;
+    if (!el) return () => window.clearTimeout(t);
     const io = new IntersectionObserver(
       ([e]) => {
         if (e.isIntersecting) {
@@ -262,7 +264,10 @@ export default function ConstelacaoCeu() {
       { rootMargin: "200% 0px" }
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      window.clearTimeout(t);
+      io.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -277,7 +282,7 @@ export default function ConstelacaoCeu() {
     <div ref={ref} className="relative h-[380svh]">
       <div className="sticky top-0 h-svh overflow-hidden bg-breu">
         {ligado ? (
-          <Canvas dpr={[1, 2]} camera={{ fov: 58, near: 0.1, far: 80 }} className="absolute inset-0">
+          <Canvas dpr={[1, 1.75]} camera={{ fov: 58, near: 0.1, far: 80 }} className="absolute inset-0">
             <Cena progressRef={progressRef} beatRef={beatRef} retrato={retrato} />
           </Canvas>
         ) : null}
