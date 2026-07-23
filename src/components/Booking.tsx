@@ -1,25 +1,30 @@
 import Image from "next/image";
 import { PRESS_KIT } from "@/data/galeria";
 
+/**
+ * O dia seguinte: depois da noite inteira, a única tela clara do site.
+ * A foto de céu aberto (a festa de dia) sustenta o convite ao contratante.
+ */
 export function Booking() {
   return (
-    <section className="relative flex min-h-svh items-center justify-center overflow-hidden px-6 text-center">
+    <section className="relative flex min-h-svh items-center justify-center overflow-hidden bg-areia px-6 text-center">
       <Image
-        src="/brand/hero-poster.jpg"
+        src="/galeria/ceu-aberto.webp"
         alt=""
         fill
-        className="scale-105 object-cover opacity-25 blur-[3px]"
+        className="object-cover object-[70%_20%]"
         sizes="100vw"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-noite via-noite/70 to-noite" />
+      {/* véu de areia: a foto vira luz da manhã sem perder presença */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(240,230,215,0.55)_0%,rgba(240,230,215,0.42)_45%,rgba(240,230,215,0.78)_100%)]" />
       <div className="relative flex flex-col items-center gap-9">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-ambar">Booking</p>
-        <h2 className="display max-w-4xl text-[clamp(1.65rem,7.4vw,6.5rem)]">
+        <p className="text-[11px] uppercase tracking-[0.4em] text-breu/70">Booking</p>
+        <h2 className="display max-w-4xl text-[clamp(1.65rem,7.4vw,6.5rem)] text-breu">
           Leva essa energia
           <br />
           pra sua festa
         </h2>
-        <p className="max-w-xl text-base leading-relaxed text-areia/75">
+        <p className="max-w-xl text-base font-medium leading-relaxed text-breu/80">
           Do warmup que enche a casa ao set que ninguém quer que acabe. Chama no direct que a
           conversa começa por lá.
         </p>
@@ -28,7 +33,7 @@ export function Booking() {
             href="https://www.instagram.com/aludemusic/"
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-ambar px-9 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-breu transition-transform hover:scale-[1.04]"
+            className="bg-breu px-9 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-areia transition-transform hover:scale-[1.04] active:scale-[0.98]"
           >
             Chamar no Instagram
           </a>
@@ -36,7 +41,7 @@ export function Booking() {
             href="https://www.enkoremusic.com/alude"
             target="_blank"
             rel="noopener noreferrer"
-            className="border border-areia/30 px-9 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-areia transition-colors hover:border-ambar hover:text-ambar"
+            className="border border-breu/40 px-9 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-breu transition-colors hover:border-breu hover:bg-breu/5 active:scale-[0.98]"
           >
             Booking via Enkore
           </a>
@@ -44,7 +49,7 @@ export function Booking() {
             href={PRESS_KIT}
             target="_blank"
             rel="noopener noreferrer"
-            className="border border-areia/30 px-9 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-areia transition-colors hover:border-ambar hover:text-ambar"
+            className="border border-breu/40 px-9 py-4 text-xs font-semibold uppercase tracking-[0.25em] text-breu transition-colors hover:border-breu hover:bg-breu/5 active:scale-[0.98]"
           >
             Press kit
           </a>

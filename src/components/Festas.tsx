@@ -1,6 +1,20 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "motion/react";
+
+const ConstelacaoCeu = dynamic(() => import("./ConstelacaoCeu"), { ssr: false });
+
+/** WebGL de verdade disponível? Sem ele (ou com reduced motion) fica o céu em SVG. */
+function temWebGL() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
 
 const ANCORAS = new Set(["Isso Não é Uma Festa", "D.Edge", "Privilège Búzios", "Privilège Juiz de Fora"]);
 
@@ -165,6 +179,12 @@ function Constelacao({
 
 export function Festas() {
   const terco = Math.ceil(FESTAS.length / 2);
+  const reduced = useReducedMotion();
+  const [ceu3d, setCeu3d] = useState(false);
+  useEffect(() => {
+    setCeu3d(!reduced && temWebGL());
+  }, [reduced]);
+
   return (
     <section className="bg-breu py-[14vh]">
       <div className="mx-auto mb-14 max-w-6xl px-6">
@@ -172,23 +192,29 @@ export function Festas() {
       </div>
       <Row items={FESTAS.slice(0, terco)} dir="left" />
       <Row items={FESTAS.slice(terco)} dir="right" />
-      <div className="mx-auto mt-[12vh] max-w-4xl px-6">
-        <p className="mb-6 text-[11px] uppercase tracking-[0.4em] text-areia/40 md:hidden">A rota</p>
-        <Constelacao
-          cidades={MOBILE}
-          linhas={MOBILE_LINHAS}
-          viewBox="0 0 400 780"
-          fontes={{ hub: 17, nome: 17.5, sub: 12, gap: 22 }}
-          className="w-full md:hidden"
-        />
-        <Constelacao
-          cidades={DESKTOP}
-          linhas={DESKTOP_LINHAS}
-          viewBox="0 0 900 540"
-          fontes={{ hub: 15, nome: 15, sub: 11.5, gap: 20 }}
-          className="hidden w-full md:block"
-        />
-      </div>
+      {ceu3d ? (
+        <div className="mt-[10vh]">
+          <ConstelacaoCeu />
+        </div>
+      ) : (
+        <div className="mx-auto mt-[12vh] max-w-4xl px-6">
+          <p className="mb-6 text-[11px] uppercase tracking-[0.4em] text-areia/40 md:hidden">A rota</p>
+          <Constelacao
+            cidades={MOBILE}
+            linhas={MOBILE_LINHAS}
+            viewBox="0 0 400 780"
+            fontes={{ hub: 17, nome: 17.5, sub: 12, gap: 22 }}
+            className="w-full md:hidden"
+          />
+          <Constelacao
+            cidades={DESKTOP}
+            linhas={DESKTOP_LINHAS}
+            viewBox="0 0 900 540"
+            fontes={{ hub: 15, nome: 15, sub: 11.5, gap: 20 }}
+            className="hidden w-full md:block"
+          />
+        </div>
+      )}
     </section>
   );
 }
