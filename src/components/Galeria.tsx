@@ -10,10 +10,24 @@ const COLUNAS_MOBILE = 2;
 const COLUNAS_DESKTOP = 3;
 // deslocamento de cada coluna: colunas em ritmos diferentes é o que dá profundidade
 const RITMO = [-52, 26, -18];
+// larguras relativas das colunas (precisam bater com o gridTemplateColumns lá embaixo)
+const LARGURAS_DESKTOP = [1.55, 1, 1.2];
+const LARGURAS_MOBILE = [1.25, 1];
 
-function distribuir(itens: Midia[], colunas: number) {
-  const out: Midia[][] = Array.from({ length: colunas }, () => []);
-  itens.forEach((m, i) => out[i % colunas].push(m));
+// gulosa ciente de largura: cada foto cai na coluna mais BAIXA no momento,
+// medindo a altura real que ela vai ocupar (razão da foto × largura da coluna).
+// O round-robin antigo ignorava isso e deixava um buraco enorme no pé do mosaico.
+function distribuir(itens: Midia[], larguras: number[]) {
+  const out: Midia[][] = larguras.map(() => []);
+  const alturas = larguras.map(() => 0);
+  itens.forEach((m) => {
+    let c = 0;
+    for (let i = 1; i < larguras.length; i++) {
+      if (alturas[i] < alturas[c] - 1e-9) c = i;
+    }
+    out[c].push(m);
+    alturas[c] += (m.h / m.w) * larguras[c];
+  });
   return out;
 }
 
@@ -55,11 +69,12 @@ export function Galeria() {
           </a>
         </div>
 
+        {/* colunas desiguais: crops grandes e pequenos convivendo = ritmo de fotolivro */}
         <div
           className="mt-12 grid gap-3 md:gap-4"
-          style={{ gridTemplateColumns: `repeat(${colunas}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: colunas === 3 ? "1.55fr 1fr 1.2fr" : "1.25fr 1fr" }}
         >
-          {distribuir(GALERIA, colunas).map((coluna, c) => (
+          {distribuir(GALERIA, colunas === 3 ? LARGURAS_DESKTOP : LARGURAS_MOBILE).map((coluna, c) => (
             <Coluna
               key={c}
               progresso={scrollYProgress}

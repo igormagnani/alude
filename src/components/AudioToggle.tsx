@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { registerAudioEl } from "@/lib/audio-bus";
 import { useScroller } from "./Scroller";
 
 const KEY = "alude-som";
 // Rolar não conta como gesto de ativação pro navegador, mas o toque que INICIA a
 // rolagem conta. Por isso pointerdown/touchstart entram junto do scroll.
-const GESTOS = ["pointerdown", "touchstart", "touchend", "keydown", "click"] as const;
+// mousedown/pointerup cobrem o primeiro clique em qualquer lugar; wheel não vale
+// como ativação pro navegador, mas custa nada tentar onde valer (Firefox aceita)
+const GESTOS = ["pointerdown", "pointerup", "mousedown", "touchstart", "touchend", "keydown", "click", "wheel"] as const;
 
 export function AudioToggle() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -33,6 +36,10 @@ export function AudioToggle() {
 
   useEffect(() => {
     setQuer(localStorage.getItem(KEY) !== "off");
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) registerAudioEl(audioRef.current);
   }, []);
 
   // Site de DJ: a trilha nasce ligada. Como o navegador bloqueia áudio antes de um gesto,
@@ -101,7 +108,7 @@ export function AudioToggle() {
           ))}
         </span>
         <span className="text-[9px] font-semibold uppercase tracking-[0.28em]">
-          {playing ? "som on" : "som off"}
+          {playing ? "som on" : esperando ? "ligar o som" : "som off"}
         </span>
       </button>
     </>

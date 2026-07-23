@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useScroller } from "./Scroller";
+
+const assinaNada = () => () => {};
 
 const LINES = [
   { text: "Não toco as músicas óbvias de sempre.", accent: false },
@@ -13,8 +15,13 @@ const LINES = [
 export function Manifesto() {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
+  // o servidor renderiza a versão animada (palavra a palavra); trocar de estrutura
+  // antes de montar estouraria a hidratação no modo reduced
+  const montado = useSyncExternalStore(assinaNada, () => true, () => false);
   const scroller = useScroller();
-  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start 0.9", "end 0.35"] });
+  // o fim da janela é 0.62 de propósito: a última linha precisa terminar de entrar
+  // com a seção ainda no meio da tela, não no limite do quadro
+  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start 0.9", "end 0.62"] });
 
   return (
     <section ref={ref} className="bg-breu px-6 py-[22vh] md:py-[26vh]">
@@ -26,7 +33,7 @@ export function Manifesto() {
             progress={scrollYProgress}
             index={i}
             total={LINES.length}
-            reduced={!!reduced}
+            reduced={montado && !!reduced}
             {...l}
           />
         ))}
@@ -52,13 +59,40 @@ function Line({
 }) {
   // escalona dentro dos primeiros 70%, sobra 30% pro fade da última linha caber inteiro
   const start = total > 1 ? (index / (total - 1)) * 0.7 : 0;
-  const opacity = useTransform(progress, [start, start + 0.3], [0.12, 1]);
-  const y = useTransform(progress, [start, start + 0.3], [26, 0]);
   const cls = `display text-[clamp(1.9rem,5.6vw,4.6rem)] ${accent ? "text-ambar" : "text-areia"}`;
   if (reduced) return <p className={cls}>{text}</p>;
+  const palavras = text.split(" ");
   return (
-    <motion.p style={{ opacity, y }} className={cls}>
-      {text}
-    </motion.p>
+    <p className={cls}>
+      {palavras.map((palavra, i) => (
+        // o espaço fica FORA do span: sem ele o texto do servidor vira palavras coladas
+        <span key={`${palavra}-${i}`}>
+          <Palavra
+            progress={progress}
+            // cada palavra ocupa uma fatia da janela da própria linha
+            start={start + (i / palavras.length) * 0.22}
+            texto={palavra}
+          />{" "}
+        </span>
+      ))}
+    </p>
+  );
+}
+
+function Palavra({
+  progress,
+  start,
+  texto,
+}: {
+  progress: ReturnType<typeof useScroll>["scrollYProgress"];
+  start: number;
+  texto: string;
+}) {
+  const opacity = useTransform(progress, [start, start + 0.14], [0.1, 1]);
+  const y = useTransform(progress, [start, start + 0.14], [18, 0]);
+  return (
+    <motion.span style={{ opacity, y }} className="inline-block will-change-transform">
+      {texto}
+    </motion.span>
   );
 }

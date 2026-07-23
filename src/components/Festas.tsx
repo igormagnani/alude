@@ -1,6 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useReducedMotion } from "motion/react";
+
+const ConstelacaoCeu = dynamic(() => import("./ConstelacaoCeu"), { ssr: false });
+
+const assinaNada = () => () => {};
+
+/** WebGL de verdade disponível? Sem ele (ou com reduced motion) fica o céu em SVG. */
+let webglCache: boolean | null = null;
+function temWebGL() {
+  if (webglCache !== null) return webglCache;
+  try {
+    const c = document.createElement("canvas");
+    webglCache = !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch {
+    webglCache = false;
+  }
+  return webglCache;
+}
 
 const ANCORAS = new Set(["Isso Não é Uma Festa", "D.Edge", "Privilège Búzios", "Privilège Juiz de Fora"]);
 
@@ -165,30 +184,53 @@ function Constelacao({
 
 export function Festas() {
   const terco = Math.ceil(FESTAS.length / 2);
+  const reduced = useReducedMotion();
+  // no servidor ainda não dá pra decidir (null): não renderiza céu nenhum,
+  // senão o SVG pisca e some quando o 3D assume no cliente
+  const montado = useSyncExternalStore(assinaNada, () => true, () => false);
+  const ceu3d = montado ? !reduced && temWebGL() : null;
+
+  // o chunk do céu 3D (three + r3f) baixa logo depois do primeiro paint,
+  // pra constelação já estar compilada quando a pessoa chegar nela
+  useEffect(() => {
+    if (!ceu3d) return;
+    const t = window.setTimeout(() => void import("./ConstelacaoCeu"), 300);
+    return () => window.clearTimeout(t);
+  }, [ceu3d]);
+
   return (
-    <section className="bg-breu py-[14vh]">
+    // pt só: com o céu 3D no fim, padding embaixo viraria uma faixa de breu entre o amanhecer e o Booking
+    <section className="bg-breu pt-[14vh]">
       <div className="mx-auto mb-14 max-w-6xl px-6">
         <h2 className="text-[11px] uppercase tracking-[0.4em] text-ambar">Onde esse som já tocou</h2>
       </div>
       <Row items={FESTAS.slice(0, terco)} dir="left" />
       <Row items={FESTAS.slice(terco)} dir="right" />
-      <div className="mx-auto mt-[12vh] max-w-4xl px-6">
-        <p className="mb-6 text-[11px] uppercase tracking-[0.4em] text-areia/40 md:hidden">A rota</p>
-        <Constelacao
-          cidades={MOBILE}
-          linhas={MOBILE_LINHAS}
-          viewBox="0 0 400 780"
-          fontes={{ hub: 17, nome: 17.5, sub: 12, gap: 22 }}
-          className="w-full md:hidden"
-        />
-        <Constelacao
-          cidades={DESKTOP}
-          linhas={DESKTOP_LINHAS}
-          viewBox="0 0 900 540"
-          fontes={{ hub: 15, nome: 15, sub: 11.5, gap: 20 }}
-          className="hidden w-full md:block"
-        />
-      </div>
+      {ceu3d === null ? (
+        <div className="h-svh" aria-hidden />
+      ) : ceu3d ? (
+        <div className="mt-[10vh]">
+          <ConstelacaoCeu />
+        </div>
+      ) : (
+        <div className="mx-auto mt-[12vh] max-w-4xl px-6 pb-[14vh]">
+          <p className="mb-6 text-[11px] uppercase tracking-[0.4em] text-areia/40 md:hidden">A rota</p>
+          <Constelacao
+            cidades={MOBILE}
+            linhas={MOBILE_LINHAS}
+            viewBox="0 0 400 780"
+            fontes={{ hub: 17, nome: 17.5, sub: 12, gap: 22 }}
+            className="w-full md:hidden"
+          />
+          <Constelacao
+            cidades={DESKTOP}
+            linhas={DESKTOP_LINHAS}
+            viewBox="0 0 900 540"
+            fontes={{ hub: 15, nome: 15, sub: 11.5, gap: 20 }}
+            className="hidden w-full md:block"
+          />
+        </div>
+      )}
     </section>
   );
 }

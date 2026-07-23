@@ -19,11 +19,12 @@ export function Faixa() {
           src="/brand/letreiro.jpg"
           alt=""
           fill
-          className="object-cover opacity-[0.22]"
+          className="object-cover opacity-[0.48]"
           sizes="100vw"
         />
       </motion.div>
-      <div className="absolute inset-0 bg-gradient-to-b from-noite via-noite/70 to-noite" />
+      {/* vinheta em vez de véu chapado: o letreiro respira, o texto segue legível */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,rgba(11,12,18,0.82)_0%,rgba(11,12,18,0.5)_55%,rgba(11,12,18,0.86)_100%)]" />
 
       <div className="relative mx-auto grid max-w-5xl items-center gap-12 px-6 md:grid-cols-2">
         <div>
