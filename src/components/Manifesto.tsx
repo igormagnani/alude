@@ -58,13 +58,15 @@ function Line({
   return (
     <p className={cls}>
       {palavras.map((palavra, i) => (
-        <Palavra
-          key={`${palavra}-${i}`}
-          progress={progress}
-          // cada palavra ocupa uma fatia da janela da própria linha
-          start={start + (i / palavras.length) * 0.22}
-          texto={palavra}
-        />
+        // o espaço fica FORA do span: sem ele o texto do servidor vira palavras coladas
+        <span key={`${palavra}-${i}`}>
+          <Palavra
+            progress={progress}
+            // cada palavra ocupa uma fatia da janela da própria linha
+            start={start + (i / palavras.length) * 0.22}
+            texto={palavra}
+          />{" "}
+        </span>
       ))}
     </p>
   );
@@ -82,7 +84,7 @@ function Palavra({
   const opacity = useTransform(progress, [start, start + 0.14], [0.1, 1]);
   const y = useTransform(progress, [start, start + 0.14], [18, 0]);
   return (
-    <motion.span style={{ opacity, y }} className="mr-[0.28em] inline-block will-change-transform">
+    <motion.span style={{ opacity, y }} className="inline-block will-change-transform">
       {texto}
     </motion.span>
   );

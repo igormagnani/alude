@@ -67,7 +67,7 @@ function beatLocal(p: number, [a, b]: readonly [number, number]) {
 const fmt = new Intl.NumberFormat("pt-BR");
 
 export function AtoAbertura() {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement | null>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -86,6 +86,10 @@ export function AtoAbertura() {
   const drawn = useRef(-1);
   const reduced = useReducedMotion();
   const [ready, setReady] = useState(false);
+  // o servidor sempre renderiza o ato completo; o fallback só entra depois de montar,
+  // senão o branch estrutural diverge do HTML do servidor e a hidratação estoura
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
 
   const scroller = useScroller();
   const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start start", "end end"] });
@@ -185,8 +189,9 @@ export function AtoAbertura() {
     }
 
     // decaimento: o palco entrega a página pro miolo sem corte seco
+    // (curto de propósito: preto demais parece site quebrado, não cinema)
     if (veuRef.current) {
-      const fim = Math.min(1, Math.max(0, (p - 0.96) / 0.04));
+      const fim = Math.min(1, Math.max(0, (p - 0.978) / 0.022));
       veuRef.current.style.opacity = String(fim);
     }
   });
@@ -222,9 +227,9 @@ export function AtoAbertura() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  if (reduced) {
+  if (montado && reduced) {
     return (
-      <header className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 text-center">
+      <header ref={(el) => { ref.current = el; }} className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6 text-center">
         <Image src="/brand/hero-poster.jpg" alt="Alude no palco" fill priority className="object-cover opacity-45" sizes="100vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-noite via-noite/40 to-noite/70" />
         <div className="relative z-10 flex flex-col items-center gap-7">
@@ -253,7 +258,7 @@ export function AtoAbertura() {
 
   return (
     // 760svh: o ato inteiro (scrub + 3 capítulos de texto + 4 cartelas) num palco só
-    <div ref={ref} className="relative h-[760svh]">
+    <div ref={(el) => { ref.current = el; }} className="relative h-[760svh]">
       <h1 className="sr-only">Alude, o anfitrião da boa música no Rio. Do warmup ao after.</h1>
       <h2 className="sr-only">Alude em números</h2>
       <div ref={stickyRef} className="sticky top-0 h-svh overflow-hidden bg-breu grain">
@@ -324,7 +329,7 @@ export function AtoAbertura() {
                 {it.unit}
               </span>
             </p>
-            <p className="mt-3 max-w-md text-xs uppercase tracking-[0.22em] text-areia/55 md:text-sm">
+            <p className={`mt-3 max-w-md text-xs uppercase tracking-[0.22em] text-areia/55 md:text-sm ${i === 3 ? "mx-auto" : ""}`}>
               {it.label}
             </p>
           </div>

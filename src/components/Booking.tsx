@@ -12,11 +12,11 @@ export function Booking() {
         src="/galeria/ceu-aberto.webp"
         alt=""
         fill
-        className="object-cover object-[70%_20%]"
+        className="object-cover object-[68%_52%]"
         sizes="100vw"
       />
       {/* véu de areia: a foto vira luz da manhã sem perder presença */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(240,230,215,0.55)_0%,rgba(240,230,215,0.42)_45%,rgba(240,230,215,0.78)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(240,230,215,0.42)_0%,rgba(240,230,215,0.3)_45%,rgba(240,230,215,0.66)_100%)]" />
       <div className="relative flex flex-col items-center gap-9">
         <p className="text-[11px] uppercase tracking-[0.4em] text-breu/70">Booking</p>
         <h2 className="display max-w-4xl text-[clamp(1.65rem,7.4vw,6.5rem)] text-breu">

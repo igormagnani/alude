@@ -39,6 +39,8 @@ export function Curadoria() {
       </motion.div>
       <div className="absolute inset-0 bg-breu/78" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_38%_55%,transparent_20%,rgba(5,6,10,0.55)_78%)]" />
+      {/* costura com o ato: a cena emerge do escuro em vez de nascer numa borda */}
+      <div className="absolute inset-x-0 top-0 h-[24vh] bg-gradient-to-b from-noite to-transparent" />
 
       {/* distorção de vinil: o warp de segurar o disco contra a luz */}
       <svg aria-hidden className="absolute h-0 w-0">

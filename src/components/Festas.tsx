@@ -186,7 +186,8 @@ export function Festas() {
   }, [reduced]);
 
   return (
-    <section className="bg-breu py-[14vh]">
+    // pt só: com o céu 3D no fim, padding embaixo viraria uma faixa de breu entre o amanhecer e o Booking
+    <section className="bg-breu pt-[14vh]">
       <div className="mx-auto mb-14 max-w-6xl px-6">
         <h2 className="text-[11px] uppercase tracking-[0.4em] text-ambar">Onde esse som já tocou</h2>
       </div>
@@ -197,7 +198,7 @@ export function Festas() {
           <ConstelacaoCeu />
         </div>
       ) : (
-        <div className="mx-auto mt-[12vh] max-w-4xl px-6">
+        <div className="mx-auto mt-[12vh] max-w-4xl px-6 pb-[14vh]">
           <p className="mb-6 text-[11px] uppercase tracking-[0.4em] text-areia/40 md:hidden">A rota</p>
           <Constelacao
             cidades={MOBILE}

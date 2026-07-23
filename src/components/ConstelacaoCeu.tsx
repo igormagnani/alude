@@ -66,9 +66,9 @@ function Estrelas({ beatRef }: { beatRef: React.MutableRefObject<number> }) {
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     const mat = new THREE.PointsMaterial({
       color: new THREE.Color("#f0e6d7"),
-      size: 0.05,
+      size: 0.075,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.9,
       sizeAttenuation: true,
       depthWrite: false,
     });
@@ -77,7 +77,7 @@ function Estrelas({ beatRef }: { beatRef: React.MutableRefObject<number> }) {
   useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
   useFrame(() => {
     // as estrelas de fundo respiram com o grave da trilha
-    mat.size = 0.05 + beatRef.current * 0.02;
+    mat.size = 0.075 + beatRef.current * 0.025;
   });
   return <points ref={ref} geometry={geo} material={mat} />;
 }
@@ -97,6 +97,8 @@ function Cidade({
   const html = useRef<HTMLDivElement>(null);
   const hub = indice === RIO;
   const pos = useMemo(() => posicao(indice, retrato), [indice, retrato]);
+  // em pé, cidade do lado direito do quadro tem o rótulo virado pra dentro (senão corta na borda)
+  const virado = retrato && CIDADES[indice].x > 550;
 
   useFrame(() => {
     const lit = litRef.current[indice] ?? 0;
@@ -123,10 +125,13 @@ function Cidade({
         <sphereGeometry args={[hub ? 0.085 : 0.055, 16, 16]} />
         <meshBasicMaterial color="#f2a412" transparent opacity={0.15} />
       </mesh>
-      <Html position={[0.28, 0.05, 0]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
-        <div ref={html} style={{ opacity: 0, transition: "opacity .2s linear", whiteSpace: "nowrap" }}>
-          <p className={`display ${hub ? "text-2xl md:text-4xl" : "text-lg md:text-2xl"} text-areia`}>{CIDADES[indice].nome}</p>
-          <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-ambar/85">{CIDADES[indice].sub}</p>
+      <Html position={[virado ? -0.28 : 0.28, 0.05, 0]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
+        {/* o flip fica num wrapper estático: o filho anima transform por frame e sobrescreveria */}
+        <div style={virado ? { transform: "translateX(-100%)", textAlign: "right" as const } : undefined}>
+          <div ref={html} style={{ opacity: 0, transition: "opacity .2s linear", whiteSpace: "nowrap" }}>
+            <p className={`display ${hub ? "text-2xl md:text-4xl" : "text-lg md:text-2xl"} text-areia`}>{CIDADES[indice].nome}</p>
+            <p className="mt-1 text-[10px] uppercase tracking-[0.25em] text-ambar/85">{CIDADES[indice].sub}</p>
+          </div>
         </div>
       </Html>
     </group>
@@ -194,7 +199,7 @@ function Cena({
     for (let i = 0; i < CIDADES.length; i++) {
       const czRaw = -(i + 1) * PASSO;
       const dist = czRaw - z; // negativo = à frente da câmera
-      const alvo = dist < 1.2 && dist > -PASSO * 2.2 ? 1 : dist > -PASSO * 3.4 ? 0.35 : 0;
+      const alvo = dist < 1.5 && dist > -PASSO * 2.8 ? 1 : dist > -PASSO * 4 ? 0.45 : 0;
       const atual = litRef.current[i];
       litRef.current[i] = atual + (alvo - atual) * 0.08;
     }
