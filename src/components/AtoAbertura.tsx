@@ -177,16 +177,18 @@ export function AtoAbertura() {
     aplicarCamada(anfFrenteRef.current, anfTrasRef.current, p, BEATS.anfitriao);
     aplicarCamada(warmFrenteRef.current, warmTrasRef.current, p, BEATS.warmup);
 
-    // cartelas de números: uma por vez, contagem dirigida pelo scroll
+    // cartelas de números: uma por vez, contagem dirigida pelo scroll.
+    // A contagem fecha aos 55% do beat de propósito: o número final precisa
+    // FICAR na tela um tempo antes da cartela sair, senão ninguém lê.
     for (let i = 0; i < NUMEROS.length; i++) {
       const el = numRefs.current[i];
       const val = numValRefs.current[i];
       if (!el) continue;
       const beat = numBeat(i);
       el.style.opacity = String(beatOpacity(p, beat));
-      const local = beatLocal(p, beat);
-      el.style.transform = `translate3d(0, ${(1 - local) * 26}px, 0)`;
-      if (val) val.textContent = fmt.format(Math.round(local * NUMEROS[i].n));
+      const contagem = beatLocal(p, [beat[0], beat[0] + (beat[1] - beat[0]) * 0.55]);
+      el.style.transform = `translate3d(0, ${(1 - contagem) * 26}px, 0)`;
+      if (val) val.textContent = fmt.format(Math.round(contagem * NUMEROS[i].n));
     }
 
     // decaimento: o palco entrega a página pro miolo sem corte seco
@@ -290,7 +292,7 @@ export function AtoAbertura() {
 
         {/* capítulo: o anfitrião (camada de trás em contorno, camada da frente sólida) */}
         <div ref={anfTrasRef} style={{ opacity: 0 }} className={headlineFrente} aria-hidden>
-          <p className="display outline-type max-w-6xl text-[clamp(2.1rem,8.8vw,7.2rem)]">
+          <p className="display outline-type max-w-5xl whitespace-nowrap text-[clamp(1.75rem,7.4vw,6rem)]">
             O anfitrião da
             <br />
             boa música no Rio
@@ -306,7 +308,7 @@ export function AtoAbertura() {
 
         {/* capítulo: do warmup ao after */}
         <div ref={warmTrasRef} style={{ opacity: 0 }} className={headlineFrente} aria-hidden>
-          <p className="display outline-type max-w-6xl text-[clamp(2.1rem,8.8vw,7.2rem)]">
+          <p className="display outline-type max-w-5xl whitespace-nowrap text-[clamp(1.75rem,7.4vw,6rem)]">
             Do warmup
             <br />
             ao after

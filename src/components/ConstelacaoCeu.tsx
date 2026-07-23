@@ -247,11 +247,20 @@ export default function ConstelacaoCeu() {
 
   useBeat((v) => { beatRef.current = v; });
 
-  // o canvas só existe com a seção por perto (bateria e memória agradecem)
+  // o canvas nasce cedo (2 telas antes) e FICA vivo depois de ligar: desmontar e
+  // remontar o WebGL era o que fazia a constelação "demorar pra aparecer"
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setLigado(e.isIntersecting), { rootMargin: "60% 0px" });
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setLigado(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200% 0px" }
+    );
     io.observe(el);
     return () => io.disconnect();
   }, []);

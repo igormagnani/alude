@@ -7,7 +7,9 @@ import { useScroller } from "./Scroller";
 const KEY = "alude-som";
 // Rolar não conta como gesto de ativação pro navegador, mas o toque que INICIA a
 // rolagem conta. Por isso pointerdown/touchstart entram junto do scroll.
-const GESTOS = ["pointerdown", "touchstart", "touchend", "keydown", "click"] as const;
+// mousedown/pointerup cobrem o primeiro clique em qualquer lugar; wheel não vale
+// como ativação pro navegador, mas custa nada tentar onde valer (Firefox aceita)
+const GESTOS = ["pointerdown", "pointerup", "mousedown", "touchstart", "touchend", "keydown", "click", "wheel"] as const;
 
 export function AudioToggle() {
   const audioRef = useRef<HTMLAudioElement>(null);

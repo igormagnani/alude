@@ -1,11 +1,20 @@
+"use client";
+
 import Image from "next/image";
+import { motion, useReducedMotion } from "motion/react";
 import { PRESS_KIT } from "@/data/galeria";
+
+const entrada = {
+  hidden: { opacity: 0, y: 24, filter: "blur(4px)" },
+  visivel: { opacity: 1, y: 0, filter: "blur(0px)" },
+};
 
 /**
  * O dia seguinte: depois da noite inteira, a única tela clara do site.
  * A foto de céu aberto (a festa de dia) sustenta o convite ao contratante.
  */
 export function Booking() {
+  const reduced = useReducedMotion();
   return (
     <section className="relative flex min-h-svh items-center justify-center overflow-hidden bg-areia px-6 text-center">
       <Image
@@ -17,18 +26,42 @@ export function Booking() {
       />
       {/* véu de areia: a foto vira luz da manhã sem perder presença */}
       <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(240,230,215,0.42)_0%,rgba(240,230,215,0.3)_45%,rgba(240,230,215,0.66)_100%)]" />
-      <div className="relative flex flex-col items-center gap-9">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-breu/70">Booking</p>
-        <h2 className="display max-w-4xl text-[clamp(1.65rem,7.4vw,6.5rem)] text-breu">
-          Leva essa energia
+      <motion.div
+        className="relative flex flex-col items-center gap-9"
+        initial={reduced ? false : "hidden"}
+        whileInView="visivel"
+        viewport={{ once: true, amount: 0.35 }}
+        transition={{ staggerChildren: 0.09 }}
+      >
+        <motion.p
+          variants={entrada}
+          transition={{ type: "spring", duration: 0.55, bounce: 0 }}
+          className="text-[11px] uppercase tracking-[0.4em] text-breu/70"
+        >
+          Booking
+        </motion.p>
+        <motion.h2
+          variants={entrada}
+          transition={{ type: "spring", duration: 0.55, bounce: 0 }}
+          className="display max-w-5xl text-[clamp(1.6rem,6.4vw,5.6rem)] text-breu"
+        >
+          Quer essa energia
           <br />
-          pra sua festa
-        </h2>
-        <p className="max-w-xl text-base font-medium leading-relaxed text-breu/80">
+          no seu evento?
+        </motion.h2>
+        <motion.p
+          variants={entrada}
+          transition={{ type: "spring", duration: 0.55, bounce: 0 }}
+          className="max-w-xl text-base font-medium leading-relaxed text-breu/80"
+        >
           Do warmup que enche a casa ao set que ninguém quer que acabe. Chama no direct que a
           conversa começa por lá.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        </motion.p>
+        <motion.div
+          variants={entrada}
+          transition={{ type: "spring", duration: 0.55, bounce: 0 }}
+          className="flex flex-wrap items-center justify-center gap-4"
+        >
           <a
             href="https://www.instagram.com/aludemusic/"
             target="_blank"
@@ -53,8 +86,8 @@ export function Booking() {
           >
             Press kit
           </a>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </section>
   );
 }

@@ -19,7 +19,9 @@ export function Manifesto() {
   // antes de montar estouraria a hidratação no modo reduced
   const montado = useSyncExternalStore(assinaNada, () => true, () => false);
   const scroller = useScroller();
-  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start 0.9", "end 0.35"] });
+  // o fim da janela é 0.62 de propósito: a última linha precisa terminar de entrar
+  // com a seção ainda no meio da tela, não no limite do quadro
+  const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start 0.9", "end 0.62"] });
 
   return (
     <section ref={ref} className="bg-breu px-6 py-[22vh] md:py-[26vh]">

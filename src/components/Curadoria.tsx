@@ -7,14 +7,15 @@ import { SERIES_ATIVAS } from "@/data/playlists";
 import { useScroller } from "./Scroller";
 
 /**
- * Vitrine da curadoria: cena full-bleed (a pista atrás) com a capa em mãos.
- * Com uma playlist só, a capa é a protagonista; quando a série crescer, o grid
- * de capas embaixo vira a prateleira sozinho.
+ * Vitrine da curadoria: cena full-bleed (a pista atrás) com a capa em destaque
+ * e a prateleira da série embaixo. Clicar numa capa da prateleira coloca ela
+ * no destaque, com o player junto.
  */
 export function Curadoria() {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
   const [ativa, setAtiva] = useState(0);
+  const [sel, setSel] = useState(0);
   const scroller = useScroller();
   const { scrollYProgress } = useScroll({ container: scroller, target: ref, offset: ["start end", "end start"] });
   const rotate = useTransform(scrollYProgress, [0, 1], [-5, 3.5]);
@@ -23,7 +24,7 @@ export function Curadoria() {
 
   const serie = SERIES_ATIVAS[ativa] ?? SERIES_ATIVAS[0];
   if (!serie) return null;
-  const destaque = serie.playlists[0];
+  const destaque = serie.playlists[sel] ?? serie.playlists[0];
 
   return (
     <section ref={ref} className="relative overflow-hidden py-[18vh]">
@@ -71,8 +72,11 @@ export function Curadoria() {
                   type="button"
                   role="tab"
                   aria-selected={i === ativa}
-                  onClick={() => setAtiva(i)}
-                  className={`border px-5 py-2.5 text-[10px] uppercase tracking-[0.25em] transition-colors ${
+                  onClick={() => {
+                    setAtiva(i);
+                    setSel(0);
+                  }}
+                  className={`border px-5 py-2.5 text-[10px] uppercase tracking-[0.25em] transition-colors active:scale-[0.98] ${
                     i === ativa
                       ? "border-dourado text-dourado"
                       : "border-areia/20 text-areia/55 hover:border-dourado/60 hover:text-dourado/80"
@@ -99,6 +103,7 @@ export function Curadoria() {
               className="group block"
             >
               <Image
+                key={destaque.spotifyId}
                 src={destaque.capa}
                 alt={`Capa da playlist ${destaque.nome}, seleção do Alude`}
                 width={1000}
@@ -118,6 +123,7 @@ export function Curadoria() {
             </p>
             <div className="mt-8 max-w-md">
               <iframe
+                key={destaque.spotifyId}
                 title={`Playlist ${destaque.nome}, seleção do Alude, no Spotify`}
                 src={`https://open.spotify.com/embed/playlist/${destaque.spotifyId}?theme=0`}
                 width="100%"
@@ -127,26 +133,39 @@ export function Curadoria() {
                 allow="clipboard-write; encrypted-media; fullscreen; picture-in-picture"
               />
             </div>
-
-            {serie.playlists.length > 1 ? (
-              <ul className="mt-8 flex flex-col gap-3">
-                {serie.playlists.slice(1).map((p) => (
-                  <li key={p.spotifyId}>
-                    <a
-                      href={`https://open.spotify.com/playlist/${p.spotifyId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-areia/70 transition-colors hover:text-dourado"
-                    >
-                      {p.nome}
-                      {p.faixas ? ` · ${p.faixas} faixas` : ""}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
           </div>
         </div>
+
+        {/* a prateleira da série: cada capa é um disco ao alcance da mão */}
+        {serie.playlists.length > 1 ? (
+          <div className="mt-14">
+            <p className="mb-5 text-[11px] uppercase tracking-[0.3em] text-areia/45">
+              Toda a série {serie.nome}
+            </p>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 md:gap-4">
+              {serie.playlists.map((p, i) => (
+                <button
+                  key={p.spotifyId}
+                  type="button"
+                  onClick={() => setSel(i)}
+                  aria-label={`Colocar a playlist ${p.nome} em destaque`}
+                  aria-pressed={i === sel}
+                  className={`group relative block overflow-hidden transition-transform active:scale-[0.97] ${
+                    i === sel ? "ring-2 ring-dourado" : "opacity-80 hover:opacity-100"
+                  }`}
+                >
+                  <Image
+                    src={p.capa}
+                    alt={`Capa da playlist ${p.nome}`}
+                    width={400}
+                    height={400}
+                    className="h-auto w-full transition-transform duration-500 group-hover:scale-[1.05] group-hover:[filter:url(#vinil-warp)] motion-reduce:group-hover:[filter:none]"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );
