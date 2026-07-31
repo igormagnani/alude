@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { CONTENT_TYPES } from "@/lib/content-constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const EDITABLE_FIELDS = ["title", "angle", "notes", "pillar", "score"] as const;
+const EDITABLE_FIELDS = ["title", "angle", "notes", "pillar", "content_type", "score"] as const;
 
 export async function PATCH(req: Request, ctx: RouteContext<"/api/admin/topics/[id]">) {
   if (!isAdminRequest(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -36,6 +37,12 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/admin/topics/[
     const patch: Record<string, unknown> = {};
     for (const key of EDITABLE_FIELDS) {
       if (key in fields) patch[key] = fields[key];
+    }
+    if ("content_type" in patch && patch.content_type != null && !CONTENT_TYPES.includes(patch.content_type as string)) {
+      return NextResponse.json(
+        { error: `content_type precisa ser um destes valores: ${CONTENT_TYPES.join(", ")}.` },
+        { status: 400 }
+      );
     }
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ error: "nenhum campo editável enviado." }, { status: 400 });

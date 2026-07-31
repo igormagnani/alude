@@ -1,12 +1,12 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { ITEM_STATUS_LABELS, PLATFORM_LABELS } from "@/lib/content-constants";
+import { ITEM_STATUS_LABELS, PLATFORM_LABELS, CONTENT_TYPE_QUADRANTS, CONTENT_TYPE_TO_QUADRANT } from "@/lib/content-constants";
 import { ProducaoToggle } from "@/components/admin/ProducaoToggle";
 
 const COUNT_STATUSES = ["draft", "em_revisao", "aprovado", "agendado", "publicado"] as const;
 
 export default async function PainelPage() {
   const [{ data: items }, { data: topicosNovos }, { data: proximos }, { data: producaoRow }] = await Promise.all([
-    supabaseAdmin.from("alude_content_items").select("status"),
+    supabaseAdmin.from("alude_content_items").select("status, content_type"),
     supabaseAdmin.from("alude_topics").select("id").eq("status", "novo"),
     supabaseAdmin
       .from("alude_content_items")
@@ -20,9 +20,14 @@ export default async function PainelPage() {
 
   const counts: Record<string, number> = {};
   for (const status of COUNT_STATUSES) counts[status] = 0;
+  const quadrantCounts: Record<string, number> = {};
+  for (const q of CONTENT_TYPE_QUADRANTS) quadrantCounts[q.key] = 0;
   for (const item of items ?? []) {
     if (item.status in counts) counts[item.status] += 1;
+    const quadrant = item.content_type ? CONTENT_TYPE_TO_QUADRANT[item.content_type] : undefined;
+    if (quadrant) quadrantCounts[quadrant] += 1;
   }
+  const totalClassificado = Object.values(quadrantCounts).reduce((a, b) => a + b, 0);
 
   const producaoLigada = producaoRow?.value === true;
 
@@ -56,6 +61,11 @@ export default async function PainelPage() {
             <p className="text-xs text-areia/50 mt-1">Tópicos novos</p>
           </div>
         </div>
+        {totalClassificado > 0 && (
+          <p className="text-xs text-areia/40 mt-3">
+            Mix por quadrante: {CONTENT_TYPE_QUADRANTS.map((q) => `${q.label} ${quadrantCounts[q.key]}`).join(" · ")}
+          </p>
+        )}
       </section>
 
       <section>

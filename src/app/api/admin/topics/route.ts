@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { CONTENT_TYPES } from "@/lib/content-constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,14 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   if (!body?.title?.trim()) return NextResponse.json({ error: "title é obrigatório" }, { status: 400 });
 
+  // content_type em tópico é sugestão, pode ficar nulo até a triagem.
+  if (body.content_type != null && !CONTENT_TYPES.includes(body.content_type)) {
+    return NextResponse.json(
+      { error: `content_type precisa ser um destes valores: ${CONTENT_TYPES.join(", ")}.` },
+      { status: 400 }
+    );
+  }
+
   const { data, error } = await supabaseAdmin
     .from("alude_topics")
     .insert({
@@ -31,6 +40,7 @@ export async function POST(req: Request) {
       angle: body.angle ?? null,
       notes: body.notes ?? null,
       pillar: body.pillar ?? null,
+      content_type: body.content_type ?? null,
       score: body.score ?? 0,
     })
     .select()

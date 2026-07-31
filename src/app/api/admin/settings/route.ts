@@ -1,23 +1,25 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { CONTENT_TYPES } from "@/lib/content-constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const PILLAR_FLOOR = 5;
-const PILLAR_CEIL = 35;
-const PILLARS = ["pov_cabine", "recap", "comunidade", "curadoria", "day_in_the_life", "bastidor_estilo"];
+// Arquitetura v2: mix_weights agora pesa content_type (função psicológica), não
+// mais pillar/cenário. Ver docs/arquitetura-de-conteudo.md.
+const CONTENT_TYPE_FLOOR = 5;
+const CONTENT_TYPE_CEIL = 30;
 
 function validateMixWeights(weights: unknown): string | null {
   if (!weights || typeof weights !== "object") return "mix_weights precisa ser um objeto.";
   const w = weights as Record<string, unknown>;
   let sum = 0;
-  for (const pillar of PILLARS) {
-    const v = w[pillar];
-    if (typeof v !== "number") return `mix_weights.${pillar} precisa ser um número.`;
-    if (v < PILLAR_FLOOR || v > PILLAR_CEIL) {
-      return `mix_weights.${pillar} precisa ficar entre ${PILLAR_FLOOR} e ${PILLAR_CEIL}.`;
+  for (const type of CONTENT_TYPES) {
+    const v = w[type];
+    if (typeof v !== "number") return `mix_weights.${type} precisa ser um número.`;
+    if (v < CONTENT_TYPE_FLOOR || v > CONTENT_TYPE_CEIL) {
+      return `mix_weights.${type} precisa ficar entre ${CONTENT_TYPE_FLOOR} e ${CONTENT_TYPE_CEIL}.`;
     }
     sum += v;
   }
@@ -59,6 +61,13 @@ export async function PATCH(req: Request) {
   if (!body || typeof body !== "object") return NextResponse.json({ error: "corpo inválido" }, { status: 400 });
 
   const now = new Date().toISOString();
+
+  if ("cenario_weights" in body) {
+    return NextResponse.json(
+      { error: "cenario_weights é somente leitura nesta versão; edite mix_weights (content_type)." },
+      { status: 400 }
+    );
+  }
 
   if ("mix_weights" in body) {
     const err = validateMixWeights(body.mix_weights);

@@ -2,11 +2,32 @@
 
 import { useState } from "react";
 import { adminFetch } from "@/lib/admin-client";
-import { PILLAR_LABELS, FORMAT_LABELS, PLATFORM_LABELS } from "@/lib/content-constants";
+import {
+  PILLAR_LABELS,
+  FORMAT_LABELS,
+  PLATFORM_LABELS,
+  CONTENT_TYPE_LABELS,
+  CONTENT_TYPE_QUADRANTS,
+  CONTENT_TYPE_TO_QUADRANT,
+  CONTENT_TYPE_QUADRANT_BADGE,
+} from "@/lib/content-constants";
+
+const PILLAR_OPTIONS = Object.keys(PILLAR_LABELS);
+
+function ContentTypeBadge({ contentType }: { contentType: string }) {
+  const quadrant = CONTENT_TYPE_TO_QUADRANT[contentType];
+  const classes = quadrant ? CONTENT_TYPE_QUADRANT_BADGE[quadrant] : "bg-areia/10 text-areia/70";
+  return (
+    <span className={`text-xs uppercase tracking-wide rounded-full px-2.5 py-1 ${classes}`}>
+      {CONTENT_TYPE_LABELS[contentType] ?? contentType}
+    </span>
+  );
+}
 
 type ContentItem = {
   id: string;
   pillar: string;
+  content_type: string;
   format: string;
   title: string;
   hook: string | null;
@@ -56,6 +77,8 @@ function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
     title: item.title,
     hook: item.hook ?? "",
     caption: item.caption ?? "",
+    pillar: item.pillar,
+    content_type: item.content_type,
   });
 
   const standby = item.asset?.standby === "depende-igor";
@@ -126,6 +149,7 @@ function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
   return (
     <div className="rounded-xl border border-areia/10 bg-breu/60 p-5">
       <div className="flex items-center gap-2 flex-wrap mb-3">
+        <ContentTypeBadge contentType={item.content_type} />
         <span className="text-xs uppercase tracking-wide rounded-full bg-ambar/15 text-ambar px-2.5 py-1">
           {PILLAR_LABELS[item.pillar] ?? item.pillar}
         </span>
@@ -160,6 +184,40 @@ function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
             className="w-full rounded-lg bg-noite border border-areia/15 px-3 py-2 text-areia outline-none focus:border-ambar"
             placeholder="Legenda"
           />
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-areia/50 mb-1">Tipo</label>
+              <select
+                value={form.content_type}
+                onChange={(e) => setForm((f) => ({ ...f, content_type: e.target.value }))}
+                className="w-full rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
+              >
+                {CONTENT_TYPE_QUADRANTS.map((q) => (
+                  <optgroup key={q.key} label={q.label}>
+                    {q.types.map((t) => (
+                      <option key={t} value={t}>
+                        {CONTENT_TYPE_LABELS[t]}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-areia/50 mb-1">Cenário</label>
+              <select
+                value={form.pillar}
+                onChange={(e) => setForm((f) => ({ ...f, pillar: e.target.value }))}
+                className="w-full rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
+              >
+                {PILLAR_OPTIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {PILLAR_LABELS[p]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="flex gap-2">
             <button onClick={saveEdit} disabled={busy} className="rounded-lg bg-ambar text-breu text-sm font-semibold px-3 py-1.5 hover:opacity-90 disabled:opacity-40">
               Salvar

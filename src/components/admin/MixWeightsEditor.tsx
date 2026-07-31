@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { adminFetch } from "@/lib/admin-client";
-import { PILLAR_LABELS } from "@/lib/content-constants";
+import { CONTENT_TYPE_LABELS, CONTENT_TYPE_QUADRANTS } from "@/lib/content-constants";
 
-const PILLARS = Object.keys(PILLAR_LABELS);
+const CONTENT_TYPES = CONTENT_TYPE_QUADRANTS.flatMap((q) => q.types);
+const FLOOR = 5;
+const CEIL = 30;
 
 type History = { at: string; weights: Record<string, number>; motivo: string | null };
 
@@ -17,15 +19,16 @@ export function MixWeightsEditor({
 }) {
   const [weights, setWeights] = useState<Record<string, number>>(() => {
     const w: Record<string, number> = {};
-    for (const p of PILLARS) w[p] = initialWeights[p] ?? 0;
+    for (const t of CONTENT_TYPES) w[t] = initialWeights[t] ?? 0;
     return w;
   });
   const [motivo, setMotivo] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const sum = PILLARS.reduce((acc, p) => acc + (weights[p] || 0), 0);
-  const valido = Math.abs(sum - 100) <= 1 && PILLARS.every((p) => weights[p] >= 5 && weights[p] <= 35);
+  const sum = CONTENT_TYPES.reduce((acc, t) => acc + (weights[t] || 0), 0);
+  const foraDoPiso = CONTENT_TYPES.filter((t) => weights[t] < FLOOR || weights[t] > CEIL);
+  const valido = Math.abs(sum - 100) <= 1 && foraDoPiso.length === 0;
 
   async function salvar() {
     setBusy(true);
@@ -46,27 +49,44 @@ export function MixWeightsEditor({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-areia/10 bg-breu/60 p-5 space-y-4">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {PILLARS.map((p) => (
-            <div key={p}>
-              <label className="flex items-center justify-between text-xs text-areia/60 mb-1">
-                <span>{PILLAR_LABELS[p]}</span>
-                <span className="text-dourado">{weights[p]}%</span>
-              </label>
-              <input
-                type="range"
-                min={5}
-                max={35}
-                value={weights[p]}
-                onChange={(e) => setWeights((w) => ({ ...w, [p]: Number(e.target.value) }))}
-                className="w-full accent-ambar"
-              />
+      <div className="rounded-xl border border-areia/10 bg-breu/60 p-5 space-y-6">
+        {CONTENT_TYPE_QUADRANTS.map((q) => {
+          const subtotal = q.types.reduce((acc, t) => acc + (weights[t] || 0), 0);
+          return (
+            <div key={q.key}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs uppercase tracking-wide text-areia/50">{q.label}</h3>
+                <span className="text-xs text-dourado">{subtotal}% do quadrante</span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {q.types.map((t) => (
+                  <div key={t}>
+                    <label className="flex items-center justify-between text-xs text-areia/60 mb-1">
+                      <span>{CONTENT_TYPE_LABELS[t]}</span>
+                      <span className="text-dourado">{weights[t]}%</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={40}
+                      value={weights[t]}
+                      onChange={(e) => setWeights((w) => ({ ...w, [t]: Number(e.target.value) }))}
+                      className="w-full accent-ambar"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+
         <p className={`text-sm ${valido ? "text-areia/50" : "text-ambar"}`}>
-          Soma atual: {sum}%. {valido ? "Dentro do permitido." : "Precisa fechar em 100%, cada pilar entre 5% e 35%."}
+          Soma atual: {sum}%.{" "}
+          {valido
+            ? "Dentro do permitido."
+            : foraDoPiso.length > 0
+              ? `Precisa ficar entre ${FLOOR}% e ${CEIL}% em cada tipo (fora do intervalo: ${foraDoPiso.map((t) => CONTENT_TYPE_LABELS[t]).join(", ")}).`
+              : "Precisa fechar em 100% no total."}
         </p>
         <input
           value={motivo}
@@ -93,7 +113,8 @@ export function MixWeightsEditor({
             {[...history].reverse().map((h, i) => (
               <li key={i} className="text-xs text-areia/50">
                 {new Date(h.at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
-                {h.motivo ? `, ${h.motivo}` : ""}: {PILLARS.map((p) => `${PILLAR_LABELS[p]} ${h.weights[p]}%`).join(", ")}
+                {h.motivo ? `, ${h.motivo}` : ""}:{" "}
+                {CONTENT_TYPES.map((t) => `${CONTENT_TYPE_LABELS[t]} ${h.weights[t] ?? 0}%`).join(", ")}
               </li>
             ))}
           </ul>

@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import { adminFetch } from "@/lib/admin-client";
-import { PILLAR_LABELS, TOPIC_SOURCE_LABELS, TOPIC_STATUS_LABELS } from "@/lib/content-constants";
+import {
+  PILLAR_LABELS,
+  TOPIC_SOURCE_LABELS,
+  TOPIC_STATUS_LABELS,
+  CONTENT_TYPE_LABELS,
+  CONTENT_TYPE_QUADRANTS,
+  CONTENT_TYPE_TO_QUADRANT,
+  CONTENT_TYPE_QUADRANT_BADGE,
+} from "@/lib/content-constants";
 
 type Topic = {
   id: string;
@@ -10,15 +18,26 @@ type Topic = {
   title: string;
   angle: string | null;
   pillar: string | null;
+  content_type: string | null;
   score: number;
   status: string;
 };
 
 const PILLAR_OPTIONS = Object.keys(PILLAR_LABELS);
 
+function ContentTypeBadge({ contentType }: { contentType: string }) {
+  const quadrant = CONTENT_TYPE_TO_QUADRANT[contentType];
+  const classes = quadrant ? CONTENT_TYPE_QUADRANT_BADGE[quadrant] : "bg-areia/10 text-areia/70";
+  return (
+    <span className={`text-[10px] uppercase tracking-wide rounded-full px-2 py-0.5 ${classes}`}>
+      {CONTENT_TYPE_LABELS[contentType] ?? contentType}
+    </span>
+  );
+}
+
 export function TopicosList({ initialTopics }: { initialTopics: Topic[] }) {
   const [topics, setTopics] = useState(initialTopics);
-  const [form, setForm] = useState({ title: "", angle: "", pillar: "", score: "" });
+  const [form, setForm] = useState({ title: "", angle: "", pillar: "", content_type: "", score: "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -34,11 +53,12 @@ export function TopicosList({ initialTopics }: { initialTopics: Topic[] }) {
           title: form.title,
           angle: form.angle || null,
           pillar: form.pillar || null,
+          content_type: form.content_type || null,
           score: form.score ? Number(form.score) : 0,
         }),
       });
       setTopics((prev) => [topic, ...prev]);
-      setForm({ title: "", angle: "", pillar: "", score: "" });
+      setForm({ title: "", angle: "", pillar: "", content_type: "", score: "" });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Não deu pra criar o tópico.");
     } finally {
@@ -81,11 +101,27 @@ export function TopicosList({ initialTopics }: { initialTopics: Topic[] }) {
             onChange={(e) => setForm((f) => ({ ...f, pillar: e.target.value }))}
             className="rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
           >
-            <option value="">Pilar (opcional)</option>
+            <option value="">Cenário (opcional)</option>
             {PILLAR_OPTIONS.map((p) => (
               <option key={p} value={p}>
                 {PILLAR_LABELS[p]}
               </option>
+            ))}
+          </select>
+          <select
+            value={form.content_type}
+            onChange={(e) => setForm((f) => ({ ...f, content_type: e.target.value }))}
+            className="rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
+          >
+            <option value="">Tipo (opcional)</option>
+            {CONTENT_TYPE_QUADRANTS.map((q) => (
+              <optgroup key={q.key} label={q.label}>
+                {q.types.map((t) => (
+                  <option key={t} value={t}>
+                    {CONTENT_TYPE_LABELS[t]}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
           <input
@@ -114,6 +150,7 @@ export function TopicosList({ initialTopics }: { initialTopics: Topic[] }) {
                   <span className="text-[10px] uppercase tracking-wide rounded-full bg-areia/10 text-areia/60 px-2 py-0.5">
                     {TOPIC_SOURCE_LABELS[t.source] ?? t.source}
                   </span>
+                  {t.content_type && <ContentTypeBadge contentType={t.content_type} />}
                   {t.pillar && (
                     <span className="text-[10px] uppercase tracking-wide rounded-full bg-ambar/15 text-ambar px-2 py-0.5">
                       {PILLAR_LABELS[t.pillar]}

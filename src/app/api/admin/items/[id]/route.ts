@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { CONTENT_TYPES } from "@/lib/content-constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ const EDITABLE_FIELDS = [
   "platforms",
   "format",
   "pillar",
+  "content_type",
   "scheduled_at",
   "asset",
 ] as const;
@@ -95,6 +97,15 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/admin/items/[i
     const patch: Record<string, unknown> = {};
     for (const key of EDITABLE_FIELDS) {
       if (key in fields) patch[key] = fields[key];
+    }
+    if ("content_type" in patch) {
+      // content_type é NOT NULL no banco; barra aqui pra não estourar erro de constraint.
+      if (typeof patch.content_type !== "string" || !CONTENT_TYPES.includes(patch.content_type)) {
+        return NextResponse.json(
+          { error: `content_type precisa ser um destes valores: ${CONTENT_TYPES.join(", ")}.` },
+          { status: 400 }
+        );
+      }
     }
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ error: "nenhum campo editável enviado." }, { status: 400 });
