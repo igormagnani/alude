@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { adminFetch } from "@/lib/admin-client";
 import {
   PILLAR_LABELS,
@@ -11,10 +12,11 @@ import {
   CONTENT_TYPE_TO_QUADRANT,
   CONTENT_TYPE_QUADRANT_BADGE,
 } from "@/lib/content-constants";
+import { getAssetThumbnail, hasGeneratedMedia, hasMediaPrompts, type ContentAsset } from "@/lib/asset-types";
 
 const PILLAR_OPTIONS = Object.keys(PILLAR_LABELS);
 
-function ContentTypeBadge({ contentType }: { contentType: string }) {
+export function ContentTypeBadge({ contentType }: { contentType: string }) {
   const quadrant = CONTENT_TYPE_TO_QUADRANT[contentType];
   const classes = quadrant ? CONTENT_TYPE_QUADRANT_BADGE[quadrant] : "bg-areia/10 text-areia/70";
   return (
@@ -36,7 +38,7 @@ type ContentItem = {
   hashtags: string[] | null;
   platforms: string[];
   status: string;
-  asset: { standby?: string | null } | null;
+  asset: ContentAsset;
   scheduled_at: string | null;
 };
 
@@ -65,6 +67,10 @@ export function FilaList({ initialItems }: { initialItems: ContentItem[] }) {
 }
 
 function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
+  const router = useRouter();
+  const thumb = getAssetThumbnail(item.asset);
+  const mediaReady = hasGeneratedMedia(item.asset);
+  const promptsReady = hasMediaPrompts(item.asset);
   const [editing, setEditing] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [scheduling, setScheduling] = useState(false);
@@ -82,6 +88,15 @@ function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
   });
 
   const standby = item.asset?.standby === "depende-igor";
+
+  // Card inteiro linca pro detalhe, exceto quando o clique nasce em algo
+  // interativo (botão, input, link, etc) ou o card já tem um form aberto.
+  function goToDetail(e: React.MouseEvent<HTMLDivElement>) {
+    if (editing || rejecting || scheduling) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, select, summary, details")) return;
+    router.push(`/admin/fila/${item.id}`);
+  }
 
   async function approve() {
     setBusy(true);
@@ -147,7 +162,18 @@ function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
   }
 
   return (
-    <div className="rounded-xl border border-areia/10 bg-breu/60 p-5">
+    <div onClick={goToDetail} className="rounded-xl border border-areia/10 bg-breu/60 p-5 cursor-pointer">
+      {thumb && (
+        <div className="mb-3 -mt-1 overflow-hidden rounded-lg">
+          {thumb.kind === "video" ? (
+            <video src={thumb.url} muted preload="metadata" className="h-36 w-full object-cover" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={thumb.url} alt="" loading="lazy" className="h-36 w-full object-cover" />
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 flex-wrap mb-3">
         <ContentTypeBadge contentType={item.content_type} />
         <span className="text-xs uppercase tracking-wide rounded-full bg-ambar/15 text-ambar px-2.5 py-1">
@@ -161,6 +187,16 @@ function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
             {PLATFORM_LABELS[p] ?? p}
           </span>
         ))}
+        {promptsReady && (
+          <span className="text-[10px] text-dourado/80" title="Direção de mídia preenchida">
+            prompt ✓
+          </span>
+        )}
+        {mediaReady && (
+          <span className="text-[10px] text-ambar/80" title="Mídia gerada">
+            mídia ✓
+          </span>
+        )}
       </div>
 
       {editing ? (

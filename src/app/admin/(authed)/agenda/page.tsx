@@ -10,7 +10,7 @@ export default async function AgendaPage() {
   const [{ data: items }, { data: settingsRow }] = await Promise.all([
     supabaseAdmin
       .from("alude_content_items")
-      .select("id, title, format, platforms, status, scheduled_at")
+      .select("id, title, format, platforms, status, scheduled_at, asset")
       .in("status", ["aprovado", "agendado"])
       .not("scheduled_at", "is", null)
       .gte("scheduled_at", start.toISOString())

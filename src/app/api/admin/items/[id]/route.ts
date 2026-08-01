@@ -107,6 +107,19 @@ export async function PATCH(req: Request, ctx: RouteContext<"/api/admin/items/[i
         );
       }
     }
+    if ("asset" in patch) {
+      // Merge raso, não replace cego: preserva standby/refs/media quando o
+      // caller manda só um pedaço do asset (ex: só `prompts` da Direção de mídia).
+      const existingAsset = (item.asset && typeof item.asset === "object" ? item.asset : {}) as Record<
+        string,
+        unknown
+      >;
+      const incomingAsset = (patch.asset && typeof patch.asset === "object" ? patch.asset : {}) as Record<
+        string,
+        unknown
+      >;
+      patch.asset = { ...existingAsset, ...incomingAsset };
+    }
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ error: "nenhum campo editável enviado." }, { status: 400 });
     }
