@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeBearer } from "@/lib/secure-compare";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getIgAuth, IG_GRAPH_BASE } from "@/lib/ig-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ const IG_METRICS = ["reach", "likes", "comments", "saved", "shares", "plays"];
  * e mantém só as que funcionaram.
  */
 async function fetchInstagramInsights(mediaId: string, token: string): Promise<Record<string, number>> {
-  const base = `https://graph.facebook.com/v23.0/${mediaId}/insights`;
+  const base = `${IG_GRAPH_BASE}/${mediaId}/insights`;
   const tryFetch = async (metrics: string[]) => {
     const url = `${base}?metric=${metrics.join(",")}&access_token=${token}`;
     const res = await fetch(url);
@@ -64,9 +65,8 @@ export async function GET(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const igUserId = process.env.ALUDE_IG_USER_ID;
-  const igToken = process.env.ALUDE_IG_ACCESS_TOKEN;
-  const igReady = Boolean(igUserId && igToken);
+  const igAuth = await getIgAuth();
+  const igReady = Boolean(igAuth);
 
   let fetched = 0;
   let skipped = 0;
@@ -76,12 +76,12 @@ export async function GET(req: Request) {
       skipped += 1;
       continue;
     }
-    if (!igReady) {
+    if (!igAuth) {
       skipped += 1;
       continue;
     }
     try {
-      const insights = await fetchInstagramInsights(pub.external_id, igToken!);
+      const insights = await fetchInstagramInsights(pub.external_id, igAuth.token);
       const prevMetrics = (pub.metrics ?? {}) as { fetched?: unknown[] };
       const fetchedLog = Array.isArray(prevMetrics.fetched) ? prevMetrics.fetched : [];
       fetchedLog.push({ at: new Date().toISOString(), day: new Date().toISOString().slice(0, 10) });

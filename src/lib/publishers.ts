@@ -1,4 +1,5 @@
 import "server-only";
+import { getIgAuth, IG_GRAPH_BASE } from "@/lib/ig-auth";
 
 /**
  * Publishers · máquina de conteúdo do Alude.
@@ -41,7 +42,6 @@ export interface Publisher {
   publish(pub: PublicationRow, item: ContentItemRow): Promise<PublishOutcome>;
 }
 
-const IG_GRAPH_BASE = "https://graph.facebook.com/v23.0";
 const IG_POLL_TIMEOUT_MS = 90_000;
 const IG_POLL_INTERVAL_MS = 3_000;
 
@@ -52,8 +52,12 @@ function buildCaption(item: ContentItemRow): string {
   return withTags.slice(0, 2200);
 }
 
-async function igFetch(path: string, params: Record<string, string>, method: "GET" | "POST" = "POST") {
-  const token = process.env.ALUDE_IG_ACCESS_TOKEN!;
+async function igFetch(
+  path: string,
+  params: Record<string, string>,
+  token: string,
+  method: "GET" | "POST" = "POST"
+) {
   const url = new URL(`${IG_GRAPH_BASE}${path}`);
   const body = new URLSearchParams({ ...params, access_token: token });
   if (method === "GET") {
@@ -70,10 +74,10 @@ async function igFetch(path: string, params: Record<string, string>, method: "GE
   return json;
 }
 
-async function pollContainerFinished(containerId: string): Promise<void> {
+async function pollContainerFinished(containerId: string, token: string): Promise<void> {
   const deadline = Date.now() + IG_POLL_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const status = await igFetch(`/${containerId}`, { fields: "status_code" }, "GET");
+    const status = await igFetch(`/${containerId}`, { fields: "status_code" }, token, "GET");
     if (status.status_code === "FINISHED") return;
     if (status.status_code === "ERROR") {
       throw new Error(`Instagram container ${containerId} falhou no processamento`);
@@ -84,9 +88,10 @@ async function pollContainerFinished(containerId: string): Promise<void> {
 }
 
 async function instagramPublish(pub: PublicationRow, item: ContentItemRow): Promise<PublishOutcome> {
-  const igUserId = process.env.ALUDE_IG_USER_ID;
-  const token = process.env.ALUDE_IG_ACCESS_TOKEN;
-  if (!igUserId || !token) return { status: "awaiting_connection" };
+  const auth = await getIgAuth();
+  if (!auth) return { status: "awaiting_connection" };
+  const igUserId = auth.user_id;
+  const token = auth.token;
 
   const refs = item.asset?.refs ?? [];
   const caption = buildCaption(item);
@@ -99,52 +104,56 @@ async function instagramPublish(pub: PublicationRow, item: ContentItemRow): Prom
     const childIds: string[] = [];
     for (const ref of refs.slice(0, 10)) {
       const isVideo = /\.(mp4|mov)(\?|$)/i.test(ref);
-      const child = await igFetch(`/${igUserId}/media`, {
-        is_carousel_item: "true",
-        ...(isVideo ? { media_type: "VIDEO", video_url: ref } : { image_url: ref }),
-      });
+      const child = await igFetch(
+        `/${igUserId}/media`,
+        {
+          is_carousel_item: "true",
+          ...(isVideo ? { media_type: "VIDEO", video_url: ref } : { image_url: ref }),
+        },
+        token
+      );
       childIds.push(child.id);
     }
-    const parent = await igFetch(`/${igUserId}/media`, {
-      media_type: "CAROUSEL",
-      children: childIds.join(","),
-      caption,
-    });
+    const parent = await igFetch(
+      `/${igUserId}/media`,
+      { media_type: "CAROUSEL", children: childIds.join(","), caption },
+      token
+    );
     containerId = parent.id;
-    await pollContainerFinished(containerId);
+    await pollContainerFinished(containerId, token);
   } else {
     const mediaUrl = refs[0];
     if (!mediaUrl) throw new Error(`Instagram ${format}: item.asset.refs vazio, sem mídia pra publicar`);
 
     if (format === "reel" || format === "short" || format === "video_longo") {
-      const created = await igFetch(`/${igUserId}/media`, {
-        media_type: "REELS",
-        video_url: mediaUrl,
-        caption,
-        share_to_feed: "true",
-      });
+      const created = await igFetch(
+        `/${igUserId}/media`,
+        { media_type: "REELS", video_url: mediaUrl, caption, share_to_feed: "true" },
+        token
+      );
       containerId = created.id;
-      await pollContainerFinished(containerId);
+      await pollContainerFinished(containerId, token);
     } else if (format === "story") {
       const isVideo = /\.(mp4|mov)(\?|$)/i.test(mediaUrl);
-      const created = await igFetch(`/${igUserId}/media`, {
-        media_type: "STORIES",
-        ...(isVideo ? { video_url: mediaUrl } : { image_url: mediaUrl }),
-      });
+      const created = await igFetch(
+        `/${igUserId}/media`,
+        { media_type: "STORIES", ...(isVideo ? { video_url: mediaUrl } : { image_url: mediaUrl }) },
+        token
+      );
       containerId = created.id;
-      if (isVideo) await pollContainerFinished(containerId);
+      if (isVideo) await pollContainerFinished(containerId, token);
     } else {
-      const created = await igFetch(`/${igUserId}/media`, { image_url: mediaUrl, caption });
+      const created = await igFetch(`/${igUserId}/media`, { image_url: mediaUrl, caption }, token);
       containerId = created.id;
     }
   }
 
-  const published = await igFetch(`/${igUserId}/media_publish`, { creation_id: containerId });
+  const published = await igFetch(`/${igUserId}/media_publish`, { creation_id: containerId }, token);
   const mediaId: string = published.id;
 
   let permalink = `https://www.instagram.com/reel/${mediaId}/`;
   try {
-    const info = await igFetch(`/${mediaId}`, { fields: "permalink" }, "GET");
+    const info = await igFetch(`/${mediaId}`, { fields: "permalink" }, token, "GET");
     if (info.permalink) permalink = info.permalink;
   } catch {
     // permalink é cosmético; segue com o fallback

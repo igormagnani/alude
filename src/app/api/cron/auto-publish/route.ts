@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authorizeBearer } from "@/lib/secure-compare";
 import { supabaseAdmin } from "@/lib/supabase";
 import { dispatchPublish, type ContentItemRow, type PublicationRow } from "@/lib/publishers";
+import { refreshIgTokenIfDue } from "@/lib/ig-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -139,9 +140,10 @@ export async function GET(req: Request) {
     if (settingRow?.value !== true) {
       return NextResponse.json({ ok: true, paused: true });
     }
+    const igRefresh = await refreshIgTokenIfDue();
     const enqueueResult = await enqueue();
     const publishResult = await publish();
-    return NextResponse.json({ ok: true, enqueue: enqueueResult, publish: publishResult });
+    return NextResponse.json({ ok: true, ig_refresh: igRefresh, enqueue: enqueueResult, publish: publishResult });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }

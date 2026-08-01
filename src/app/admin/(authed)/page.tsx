@@ -5,18 +5,20 @@ import { ProducaoToggle } from "@/components/admin/ProducaoToggle";
 const COUNT_STATUSES = ["draft", "em_revisao", "aprovado", "agendado", "publicado"] as const;
 
 export default async function PainelPage() {
-  const [{ data: items }, { data: topicosNovos }, { data: proximos }, { data: producaoRow }] = await Promise.all([
-    supabaseAdmin.from("alude_content_items").select("status, content_type"),
-    supabaseAdmin.from("alude_topics").select("id").eq("status", "novo"),
-    supabaseAdmin
-      .from("alude_content_items")
-      .select("id, title, platforms, scheduled_at, status")
-      .not("scheduled_at", "is", null)
-      .in("status", ["aprovado", "agendado"])
-      .order("scheduled_at", { ascending: true })
-      .limit(7),
-    supabaseAdmin.from("alude_settings").select("value").eq("key", "producao_ligada").single(),
-  ]);
+  const [{ data: items }, { data: topicosNovos }, { data: proximos }, { data: producaoRow }, { data: igAuthRow }] =
+    await Promise.all([
+      supabaseAdmin.from("alude_content_items").select("status, content_type"),
+      supabaseAdmin.from("alude_topics").select("id").eq("status", "novo"),
+      supabaseAdmin
+        .from("alude_content_items")
+        .select("id, title, platforms, scheduled_at, status")
+        .not("scheduled_at", "is", null)
+        .in("status", ["aprovado", "agendado"])
+        .order("scheduled_at", { ascending: true })
+        .limit(7),
+      supabaseAdmin.from("alude_settings").select("value").eq("key", "producao_ligada").single(),
+      supabaseAdmin.from("alude_settings").select("value").eq("key", "ig_auth").maybeSingle(),
+    ]);
 
   const counts: Record<string, number> = {};
   for (const status of COUNT_STATUSES) counts[status] = 0;
@@ -31,9 +33,11 @@ export default async function PainelPage() {
 
   const producaoLigada = producaoRow?.value === true;
 
-  const igConfigurado = Boolean(process.env.ALUDE_IG_USER_ID && process.env.ALUDE_IG_ACCESS_TOKEN);
-  const conexoes = [
-    { nome: "Instagram", ok: igConfigurado },
+  const igAuthValue = igAuthRow?.value as { token?: string; username?: string | null } | null | undefined;
+  const igConfigurado = Boolean(igAuthValue?.token) || Boolean(process.env.ALUDE_IG_ACCESS_TOKEN);
+  const igUsername = igAuthValue?.username ?? null;
+  const conexoes: { nome: string; ok: boolean; detalhe?: string }[] = [
+    { nome: "Instagram", ok: igConfigurado, detalhe: igUsername ? `@${igUsername}` : undefined },
     { nome: "TikTok", ok: false },
     { nome: "YouTube", ok: false },
   ];
@@ -99,7 +103,9 @@ export default async function PainelPage() {
             >
               <span className={`h-2 w-2 rounded-full ${c.ok ? "bg-ambar" : "bg-areia/25"}`} />
               <span className="text-sm text-areia/80">{c.nome}</span>
-              <span className="text-xs text-areia/40">{c.ok ? "configurado" : "aguardando conexão"}</span>
+              <span className="text-xs text-areia/40">
+                {c.ok ? (c.detalhe ?? "configurado") : "aguardando conexão"}
+              </span>
             </div>
           ))}
         </div>
