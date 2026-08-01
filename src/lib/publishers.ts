@@ -141,11 +141,13 @@ async function instagramPublish(pub: PublicationRow, item: ContentItemRow): Prom
         token
       );
       containerId = created.id;
-      if (isVideo) await pollContainerFinished(containerId, token);
     } else {
       const created = await igFetch(`/${igUserId}/media`, { image_url: mediaUrl, caption }, token);
       containerId = created.id;
     }
+    // Imagem também precisa do poll: publicar antes do container ficar FINISHED
+    // dá erro 9007 "Media ID is not available" (mesmo bug já corrigido na HH).
+    await pollContainerFinished(containerId, token);
   }
 
   const published = await igFetch(`/${igUserId}/media_publish`, { creation_id: containerId }, token);
