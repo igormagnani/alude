@@ -4,26 +4,38 @@ type BalanceRow = {
   content_type: string;
   produzido_28d: number;
   publicado_28d: number;
-  peso_alvo: number | null;
 };
 
 /**
  * Mix vs alvo em barras horizontais (substitui a tabela de Performance).
  * Duas leituras por tipo — produzido e publicado, cada um como fatia do
- * respectivo total de 28 dias — com um traço marcando onde o peso_alvo cairia
+ * respectivo total de 28 dias — com um traço marcando onde o peso alvo cairia
  * na mesma escala. Sem dado ainda (T0): tudo em zero, o traço do alvo
  * continua visível pra já mostrar a meta.
+ *
+ * `weights` vem direto de `alude_settings.mix_weights` (mesma fonte do
+ * MixWeightsEditor), não do `peso_alvo` da view `alude_mix_balance`: a view
+ * agrupa por `content_type` a partir de `alude_content_items`, então um tipo
+ * sem nenhuma peça ainda produzida (T0) simplesmente não aparece nas rows —
+ * ler o alvo de lá mostrava "0%" pra Humor/Viral remix mesmo com 15%/10%
+ * configurados. `weights` é a fonte de verdade e sempre tem os 8 tipos.
  */
-export function MixBalanceBars({ rows }: { rows: BalanceRow[] }) {
+export function MixBalanceBars({ rows, weights }: { rows: BalanceRow[]; weights: Record<string, number> }) {
   const byType = new Map(rows.map((r) => [r.content_type, r]));
   const totalProduzido = rows.reduce((acc, r) => acc + (r.produzido_28d ?? 0), 0);
   const totalPublicado = rows.reduce((acc, r) => acc + (r.publicado_28d ?? 0), 0);
 
-  const allValues = rows.flatMap((r) => [
-    r.peso_alvo ?? 0,
-    totalProduzido > 0 ? (r.produzido_28d / totalProduzido) * 100 : 0,
-    totalPublicado > 0 ? (r.publicado_28d / totalPublicado) * 100 : 0,
-  ]);
+  const allTypes = CONTENT_TYPE_QUADRANTS.flatMap((q) => q.types);
+  const allValues = allTypes.flatMap((type) => {
+    const row = byType.get(type);
+    const produzido = row?.produzido_28d ?? 0;
+    const publicado = row?.publicado_28d ?? 0;
+    return [
+      weights[type] ?? 0,
+      totalProduzido > 0 ? (produzido / totalProduzido) * 100 : 0,
+      totalPublicado > 0 ? (publicado / totalPublicado) * 100 : 0,
+    ];
+  });
   const scaleMax = Math.max(40, ...allValues);
 
   return (
@@ -34,7 +46,7 @@ export function MixBalanceBars({ rows }: { rows: BalanceRow[] }) {
           <div className="space-y-3">
             {q.types.map((type) => {
               const row = byType.get(type);
-              const alvo = row?.peso_alvo ?? 0;
+              const alvo = weights[type] ?? 0;
               const produzido = row?.produzido_28d ?? 0;
               const publicado = row?.publicado_28d ?? 0;
               const shareProduzido = totalProduzido > 0 ? (produzido / totalProduzido) * 100 : 0;

@@ -46,7 +46,7 @@ export default async function MaisPage() {
 
       <section>
         <h2 className="mb-3 text-sm uppercase tracking-wide text-areia/50">Mix vs alvo · 28 dias</h2>
-        <MixBalanceBars rows={mixBalance ?? []} />
+        <MixBalanceBars rows={mixBalance ?? []} weights={mixWeights} />
       </section>
 
       <section>

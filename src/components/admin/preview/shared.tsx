@@ -51,12 +51,32 @@ export function truncateCaption(caption: string, max = 125): { short: string; tr
  * Item sem mídia gerada ainda: placeholder na paleta da marca (não do IG),
  * porque aqui o conteúdo É a ausência de mídia. Hook (ou título, se não
  * houver hook) grande em Archivo pra ainda dar pra julgar a copy.
+ *
+ * `compact` serve pra cartões pequenos (ex: strip "Precisa de você" da Mesa,
+ * w-32): mesma linguagem visual (gradiente noite→breu, Archivo), texto e
+ * padding bem menores pra caber sem estourar um cartão de ~128px.
  */
-export function EmptyMediaPlaceholder({ hook, title }: { hook: string | null; title: string }) {
+export function EmptyMediaPlaceholder({
+  hook,
+  title,
+  compact = false,
+}: {
+  hook: string | null;
+  title: string;
+  compact?: boolean;
+}) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-b from-noite to-breu px-6 text-center">
-      <p className="display text-2xl text-areia sm:text-3xl">{hook || title}</p>
-      <p className="text-[11px] uppercase tracking-[0.16em] text-areia/40">mídia ainda não gerada</p>
+    <div
+      className={`flex h-full w-full flex-col items-center justify-center bg-gradient-to-b from-noite to-breu text-center ${
+        compact ? "gap-1 px-2" : "gap-2 px-6"
+      }`}
+    >
+      <p className={`display text-areia ${compact ? "text-xs leading-snug line-clamp-4" : "text-2xl sm:text-3xl"}`}>
+        {hook || title}
+      </p>
+      {!compact && (
+        <p className="text-[11px] uppercase tracking-[0.16em] text-areia/40">mídia ainda não gerada</p>
+      )}
     </div>
   );
 }

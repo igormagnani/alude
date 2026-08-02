@@ -182,11 +182,20 @@ export function MesaTimeline({
   );
 }
 
+/**
+ * Só Instagram publica de fato hoje (mesmo corte hardcoded de ConfiguracoesPanel:
+ * TikTok/YouTube ainda não têm publish real, só existem como opção futura nos
+ * slots). Mostrar slot livre de plataforma sem publish real é ruído puro —
+ * nunca vira uma peça de verdade até a integração existir.
+ */
+const CONNECTED_PLATFORMS = new Set(["instagram"]);
+
 function freeSlotsForDay(day: Date, dayItems: MesaTimelineItem[], slots: Record<string, Slot[]>) {
   const diaKey = weekdayKeySP(day);
   const filledPlatforms = new Set(dayItems.flatMap((i) => i.platforms));
   const free: { platform: string; hora: string; formato: string }[] = [];
   for (const platform of Object.keys(slots)) {
+    if (!CONNECTED_PLATFORMS.has(platform)) continue;
     if (filledPlatforms.has(platform)) continue;
     for (const slot of slots[platform] ?? []) {
       if (slot.dia === diaKey) free.push({ platform, hora: slot.hora, formato: slot.formato });

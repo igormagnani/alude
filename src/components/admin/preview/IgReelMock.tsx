@@ -44,7 +44,7 @@ export function IgReelMock({ item }: { item: PreviewItem }) {
   }
 
   return (
-    <div className="relative aspect-[9/16] w-full overflow-hidden bg-neutral-900">
+    <div className="relative aspect-[9/16] max-h-[var(--mock-max-h,75dvh)] w-full overflow-hidden bg-neutral-900">
       {videoUrl ? (
         <>
           <video
@@ -56,7 +56,7 @@ export function IgReelMock({ item }: { item: PreviewItem }) {
             loop
             controls={false}
             onClick={toggle}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
           />
           {paused && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

@@ -87,9 +87,9 @@ export function PreviewShell({
             <IconClose className="h-5 w-5" aria-hidden />
           </Link>
         </div>
-        <div className="flex items-center justify-center gap-3 text-sm text-white/60">
+        <div className="flex min-w-0 items-center justify-center gap-2 text-sm text-white/60">
           <NavChevron href={prevId ? `/admin/p/${prevId}` : undefined} direction="prev" />
-          {position && <span className="tabular-nums">{position}</span>}
+          {position && <span className="shrink-0 whitespace-nowrap tabular-nums">{position}</span>}
           <NavChevron href={nextId ? `/admin/p/${nextId}` : undefined} direction="next" />
         </div>
         <div className="flex justify-end">
@@ -103,7 +103,22 @@ export function PreviewShell({
       </header>
 
       <div className={`flex-1 overflow-y-auto overscroll-contain ${isPublished ? "pb-8" : "pb-52"}`}>
-        <div key={item.id} className={`mx-auto w-full max-w-[390px] ${leaving ? "admin-card-out" : "admin-pop"}`}>
+        <div
+          key={item.id}
+          className={`mx-auto w-full max-w-[390px] ${leaving ? "admin-card-out" : "admin-pop"}`}
+          style={
+            {
+              // Altura útil pro mock inteiro caber acima da JudgmentBar (que
+              // reserva pb-52 embaixo) sem cortar a arte: header ~3.5rem +
+              // reserva de baixo, sempre em dvh pra acompanhar a barra de
+              // endereço do celular. Publicado não tem JudgmentBar, então a
+              // reserva de baixo é só o pb-8 do próprio scroller.
+              "--mock-max-h": isPublished
+                ? "calc(100dvh - 3.5rem - 2rem)"
+                : "calc(100dvh - 3.5rem - 13rem)",
+            } as React.CSSProperties
+          }
+        >
           {renderMock(item)}
           {isPublished && <PublishedLink publications={publications} />}
         </div>

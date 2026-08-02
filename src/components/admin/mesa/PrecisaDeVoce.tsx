@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { getAssetThumbnail, type ContentAsset } from "@/lib/asset-types";
 import { EmptyState } from "@/components/admin/ui";
+import { EmptyMediaPlaceholder } from "@/components/admin/preview/shared";
 
 export type PrecisaDeVoceItem = {
   id: string;
   title: string;
+  hook: string | null;
   scheduled_at: string | null;
   asset: ContentAsset;
 };
@@ -46,9 +48,7 @@ export function PrecisaDeVoce({ items }: { items: PrecisaDeVoceItem[] }) {
                   <img src={thumb.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                 )
               ) : (
-                <span className="flex h-full w-full items-center justify-center px-2 text-center text-[10px] uppercase tracking-wide text-areia/30">
-                  sem mídia
-                </span>
+                <EmptyMediaPlaceholder hook={item.hook} title={item.title} compact />
               )}
             </span>
             <p className="mt-1.5 text-[11px] text-ambar">{shortWhen(item.scheduled_at)}</p>

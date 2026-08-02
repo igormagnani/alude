@@ -4,7 +4,7 @@ import { PrecisaDeVoce } from "@/components/admin/mesa/PrecisaDeVoce";
 import { MesaTimeline } from "@/components/admin/mesa/MesaTimeline";
 import { PublicadasRecentes, type PublicadaItem } from "@/components/admin/mesa/PublicadasRecentes";
 
-const MESA_FIELDS = "id, title, format, platforms, status, scheduled_at, asset";
+const MESA_FIELDS = "id, title, hook, format, platforms, status, scheduled_at, asset";
 
 /**
  * Mesa (`/admin`): home única que substitui Painel + Fila + Agenda. Cinco

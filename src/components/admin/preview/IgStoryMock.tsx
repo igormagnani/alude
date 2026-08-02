@@ -12,13 +12,13 @@ export function IgStoryMock({ item }: { item: PreviewItem }) {
   const thumb = getAssetThumbnail(item.asset);
 
   return (
-    <div className="relative aspect-[9/16] w-full overflow-hidden bg-neutral-900">
+    <div className="relative aspect-[9/16] max-h-[var(--mock-max-h,75dvh)] w-full overflow-hidden bg-neutral-900">
       {thumb ? (
         thumb.kind === "video" ? (
-          <video src={thumb.url} muted loop autoPlay playsInline className="h-full w-full object-cover" />
+          <video src={thumb.url} muted loop autoPlay playsInline className="h-full w-full object-contain" />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb.url} alt="" className="h-full w-full object-cover" />
+          <img src={thumb.url} alt="" className="h-full w-full object-contain" />
         )
       ) : (
         <EmptyMediaPlaceholder hook={item.hook} title={item.title} />
