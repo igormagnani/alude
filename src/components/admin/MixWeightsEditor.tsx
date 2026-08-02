@@ -80,7 +80,7 @@ export function MixWeightsEditor({
           );
         })}
 
-        <p className={`text-sm ${valido ? "text-areia/50" : "text-ambar"}`}>
+        <p className={`text-sm ${valido ? "text-areia/50" : "text-brasa"}`}>
           Soma atual: {sum}%.{" "}
           {valido
             ? "Dentro do permitido."

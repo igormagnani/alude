@@ -51,7 +51,7 @@ export default function LoginPage() {
               placeholder="Sua chave"
             />
           </div>
-          {error && <p className="text-sm text-ambar/90">{error}</p>}
+          {error && <p className="text-sm text-brasa">{error}</p>}
           <button
             type="submit"
             disabled={loading || !key}

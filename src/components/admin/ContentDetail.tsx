@@ -8,14 +8,24 @@ import {
   PILLAR_LABELS,
   FORMAT_LABELS,
   PLATFORM_LABELS,
+  CONTENT_TYPE_LABELS,
+  CONTENT_TYPE_QUADRANTS,
+  CONTENT_TYPES,
   ITEM_STATUS_LABELS,
   formatScheduledAt,
   isScheduledLate,
-  toLocalInputValue,
 } from "@/lib/content-constants";
-import { ContentTypeBadge } from "@/components/admin/ReviewFeed";
 import { ASSET_PROMPT_TOOLS, type AssetPrompt, type ContentAsset } from "@/lib/asset-types";
-import { Badge, Button, Card, Input, Select, Textarea, type BadgeTone } from "@/components/admin/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ContentTypeBadge,
+  Input,
+  Select,
+  Textarea,
+  type BadgeTone,
+} from "@/components/admin/ui";
 
 type DetailItem = {
   id: string;
@@ -35,8 +45,9 @@ type DetailItem = {
   topic: { title: string } | null;
 };
 
-/** Status de onde dá pra aprovar em 1 toque (espelha a API). */
-const APPROVE_FROM = ["draft", "em_revisao", "aprovado", "rejeitado"];
+const PILLAR_OPTIONS = Object.keys(PILLAR_LABELS);
+const FORMAT_OPTIONS = Object.keys(FORMAT_LABELS);
+const PLATFORM_OPTIONS = Object.keys(PLATFORM_LABELS);
 
 function statusTone(status: string): BadgeTone {
   if (status === "rejeitado") return "brasa";
@@ -48,6 +59,12 @@ function emptyPrompt(): AssetPrompt {
   return { label: "", tool: ASSET_PROMPT_TOOLS[0], model: "", prompt: "", aspect_ratio: "9:16", notes: "" };
 }
 
+/**
+ * Editor puro (`/admin/editar/[id]`): só copy + direção de mídia. O
+ * julgamento (aprovar/ajustar horário/rejeitar) mora inteiro na JudgmentBar
+ * do Preview IG (`/admin/p/[id]`) desde a Fase 4 da re-arquitetura — este
+ * componente não chama nenhuma action de status, só `edit`.
+ */
 export function ContentDetail({ item }: { item: DetailItem }) {
   const router = useRouter();
 
@@ -56,34 +73,24 @@ export function ContentDetail({ item }: { item: DetailItem }) {
   const [roteiro, setRoteiro] = useState(item.roteiro ?? "");
   const [caption, setCaption] = useState(item.caption ?? "");
   const [hashtagsText, setHashtagsText] = useState((item.hashtags ?? []).join(" "));
+  const [contentType, setContentType] = useState(item.content_type);
+  const [pillar, setPillar] = useState(item.pillar);
+  const [format, setFormat] = useState(item.format);
+  const [platforms, setPlatforms] = useState<string[]>(item.platforms);
   const [prompts, setPrompts] = useState<AssetPrompt[]>(item.asset?.prompts ?? []);
 
   const [saving, setSaving] = useState(false);
   const [saveOk, setSaveOk] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
-  const [picker, setPicker] = useState<"approve" | "change" | null>(null);
-  const [pickerValue, setPickerValue] = useState("");
-  const [rejecting, setRejecting] = useState(false);
-  const [note, setNote] = useState("");
-  const [archiving, setArchiving] = useState(false);
 
   const standby = item.asset?.standby === "depende-igor";
   const media = item.asset?.media;
   const late = isScheduledLate(item.scheduled_at) && item.status !== "rejeitado";
-  const hasFutureSchedule = Boolean(item.scheduled_at) && !isScheduledLate(item.scheduled_at);
 
   const displayStatus = item.status === "aprovado" && item.scheduled_at ? "agendado" : item.status;
-  const canApprove = APPROVE_FROM.includes(item.status);
-  const canChangeTime = item.status !== "publicado" && item.status !== "arquivado";
-  const canReject = item.status !== "publicado" && item.status !== "arquivado";
-  const canArchive = item.status !== "arquivado";
 
-  function closeSecondary() {
-    setPicker(null);
-    setRejecting(false);
-    setArchiving(false);
+  function togglePlatform(p: string) {
+    setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
   }
 
   async function save() {
@@ -105,6 +112,10 @@ export function ContentDetail({ item }: { item: DetailItem }) {
             roteiro,
             caption,
             hashtags,
+            content_type: contentType,
+            pillar,
+            format,
+            platforms,
             asset: { prompts },
           },
         }),
@@ -116,102 +127,6 @@ export function ContentDetail({ item }: { item: DetailItem }) {
       setErr(e instanceof Error ? e.message : "Não deu pra salvar.");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function approveAndSchedule(iso: string) {
-    setBusy(true);
-    setErr(null);
-    try {
-      await adminFetch(`/api/admin/items/${item.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ action: "approve_and_schedule", scheduled_at: iso }),
-      });
-      setPicker(null);
-      router.refresh();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Não deu pra aprovar.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function approveNow() {
-    if (!item.scheduled_at) return;
-    approveAndSchedule(item.scheduled_at);
-  }
-
-  function openApprovePicker() {
-    closeSecondary();
-    setPicker("approve");
-    setPickerValue(toLocalInputValue(item.scheduled_at));
-  }
-
-  function openChangePicker() {
-    closeSecondary();
-    setPicker("change");
-    setPickerValue(toLocalInputValue(item.scheduled_at));
-  }
-
-  async function confirmPicker() {
-    if (!pickerValue) return;
-    const iso = new Date(pickerValue).toISOString();
-    if (picker === "approve") {
-      await approveAndSchedule(iso);
-      return;
-    }
-    setBusy(true);
-    setErr(null);
-    try {
-      // Item já aprovado/agendado: usa a action `schedule`, que também
-      // atualiza as alude_publications pendentes (corrige o bug de
-      // reagendamento). Ainda em revisão: só edita o horário proposto.
-      const action = item.status === "aprovado" || item.status === "agendado" ? "schedule" : "edit";
-      const body =
-        action === "schedule" ? { action, scheduled_at: iso } : { action, fields: { scheduled_at: iso } };
-      await adminFetch(`/api/admin/items/${item.id}`, { method: "PATCH", body: JSON.stringify(body) });
-      setPicker(null);
-      router.refresh();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Não deu pra mudar o horário.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function confirmReject() {
-    if (!note.trim()) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      await adminFetch(`/api/admin/items/${item.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ action: "reject", rejection_note: note }),
-      });
-      setRejecting(false);
-      setNote("");
-      router.refresh();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Não deu pra rejeitar.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function confirmArchive() {
-    setBusy(true);
-    setErr(null);
-    try {
-      await adminFetch(`/api/admin/items/${item.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ action: "archive" }),
-      });
-      setArchiving(false);
-      router.refresh();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Não deu pra arquivar.");
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -229,13 +144,21 @@ export function ContentDetail({ item }: { item: DetailItem }) {
 
   return (
     <div className="space-y-8">
-      <Link href="/admin/fila" className="inline-block text-sm text-areia/50 hover:text-areia">
-        ← Voltar pra fila
-      </Link>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <Link href="/admin" className="inline-block text-sm text-areia/50 hover:text-areia">
+          ← Voltar pra Mesa
+        </Link>
+        <Link
+          href={`/admin/p/${item.id}`}
+          className="inline-block text-sm text-dourado hover:text-ambar"
+        >
+          ver preview →
+        </Link>
+      </div>
 
       <Card padding="sm" className="flex items-center gap-2 flex-wrap text-sm">
         <span className="font-semibold text-areia">
-          {item.platforms.length > 0 ? item.platforms.map((p) => PLATFORM_LABELS[p] ?? p).join(" · ") : "sem plataforma"}
+          {platforms.length > 0 ? platforms.map((p) => PLATFORM_LABELS[p] ?? p).join(" · ") : "sem plataforma"}
         </span>
         <span className="text-areia/30">·</span>
         <span className={`display text-lg leading-none ${late ? "text-brasa" : "text-areia"}`}>
@@ -245,20 +168,13 @@ export function ContentDetail({ item }: { item: DetailItem }) {
         {item.topic?.title && (
           <span className="w-full text-xs text-areia/50 sm:w-auto sm:ml-1">da pauta: {item.topic.title}</span>
         )}
-        <span className="ml-auto flex flex-col items-end gap-1">
+        <span className="ml-auto">
           <Badge tone={statusTone(displayStatus)}>{ITEM_STATUS_LABELS[displayStatus] ?? displayStatus}</Badge>
-          {displayStatus === "agendado" && (
-            <span className="text-[10px] text-areia/40">entra na fila de publicação em minutos</span>
-          )}
         </span>
       </Card>
 
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <ContentTypeBadge contentType={item.content_type} />
-          <Badge tone="dourado">{PILLAR_LABELS[item.pillar] ?? item.pillar}</Badge>
-          <Badge tone="neutral">{FORMAT_LABELS[item.format] ?? item.format}</Badge>
-        </div>
+        <ContentTypeBadge contentType={contentType} />
         <Button variant="primary" onClick={save} disabled={saving}>
           {saveOk ? "Salvo" : saving ? "Salvando..." : "Salvar edição"}
         </Button>
@@ -314,94 +230,63 @@ export function ContentDetail({ item }: { item: DetailItem }) {
             />
           </Field>
 
-          <Card padding="md" className="space-y-3">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-areia/50">Ações</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Tipo de conteúdo">
+              <Select value={contentType} onChange={(e) => setContentType(e.target.value)}>
+                {CONTENT_TYPE_QUADRANTS.map((q) => (
+                  <optgroup key={q.key} label={q.label}>
+                    {q.types.map((t) => (
+                      <option key={t} value={t}>
+                        {CONTENT_TYPE_LABELS[t]}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+                {!CONTENT_TYPES.includes(contentType) && <option value={contentType}>{contentType}</option>}
+              </Select>
+            </Field>
 
-            {picker ? (
-              <div className="space-y-2">
-                <Input
-                  type="datetime-local"
-                  value={pickerValue}
-                  onChange={(e) => setPickerValue(e.target.value)}
-                  autoFocus
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="primary" onClick={confirmPicker} disabled={busy || !pickerValue}>
-                    {busy ? "Confirmando…" : picker === "approve" ? "Confirmar aprovação" : "Confirmar novo horário"}
-                  </Button>
-                  <Button variant="ghost" onClick={closeSecondary}>
-                    Cancelar
-                  </Button>
-                </div>
-              </div>
-            ) : rejecting ? (
-              <div className="space-y-2">
-                <Textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  rows={2}
-                  placeholder="Por que essa peça não vai pra frente?"
-                  autoFocus
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="destructive" onClick={confirmReject} disabled={busy || !note.trim()}>
-                    {busy ? "Rejeitando…" : "Confirmar rejeição"}
-                  </Button>
-                  <Button variant="ghost" onClick={closeSecondary}>
-                    Cancelar
-                  </Button>
-                </div>
-              </div>
-            ) : archiving ? (
-              <div className="space-y-2">
-                <p className="text-xs text-areia/60">
-                  Arquivar tira essa peça do fluxo de revisão e agenda de vez. Confirma?
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="destructive" onClick={confirmArchive} disabled={busy}>
-                    {busy ? "Arquivando…" : "Confirmar arquivamento"}
-                  </Button>
-                  <Button variant="ghost" onClick={closeSecondary}>
-                    Cancelar
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {canApprove && (
-                  <Button
-                    variant="primary"
-                    className="w-full"
-                    disabled={busy || standby}
-                    onClick={hasFutureSchedule ? approveNow : openApprovePicker}
-                  >
-                    {busy
-                      ? "Aprovando…"
-                      : hasFutureSchedule
-                        ? `Aprovar · ${formatScheduledAt(item.scheduled_at)}`
-                        : "Aprovar e escolher horário"}
-                  </Button>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {canChangeTime && (
-                    <Button variant="secondary" className="flex-1" onClick={openChangePicker}>
-                      Mudar horário
-                    </Button>
-                  )}
-                  {canReject && (
-                    <Button variant="destructive" className="flex-1" onClick={() => setRejecting(true)}>
-                      Rejeitar
-                    </Button>
-                  )}
-                </div>
-                {canArchive && (
-                  <Button variant="secondary" className="w-full" onClick={() => setArchiving(true)}>
-                    Arquivar
-                  </Button>
-                )}
-              </div>
-            )}
-          </Card>
+            <Field label="Cenário">
+              <Select value={pillar} onChange={(e) => setPillar(e.target.value)}>
+                {PILLAR_OPTIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {PILLAR_LABELS[p]}
+                  </option>
+                ))}
+                {!PILLAR_OPTIONS.includes(pillar) && <option value={pillar}>{pillar}</option>}
+              </Select>
+            </Field>
+
+            <Field label="Formato">
+              <Select value={format} onChange={(e) => setFormat(e.target.value)}>
+                {FORMAT_OPTIONS.map((f) => (
+                  <option key={f} value={f}>
+                    {FORMAT_LABELS[f]}
+                  </option>
+                ))}
+                {!FORMAT_OPTIONS.includes(format) && <option value={format}>{format}</option>}
+              </Select>
+            </Field>
+          </div>
+
+          <Field label="Plataformas">
+            <div className="flex flex-wrap gap-1.5">
+              {PLATFORM_OPTIONS.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => togglePlatform(p)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors duration-150 ${
+                    platforms.includes(p)
+                      ? "border-dourado bg-dourado/15 text-dourado"
+                      : "border-areia/20 text-areia/60 hover:border-areia/40"
+                  }`}
+                >
+                  {PLATFORM_LABELS[p]}
+                </button>
+              ))}
+            </div>
+          </Field>
         </div>
 
         {/* Coluna de mídia: no mobile vem primeiro */}

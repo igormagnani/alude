@@ -7,6 +7,11 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
+import {
+  CONTENT_TYPE_LABELS,
+  CONTENT_TYPE_TO_QUADRANT,
+  type ContentTypeQuadrant,
+} from "@/lib/content-constants";
 
 /**
  * Primitivas visuais do admin (backstage da marca): um lugar único pros padrões
@@ -99,6 +104,36 @@ export function Badge({ tone = "neutral", className = "", ...props }: BadgeProps
       className={`inline-flex items-center text-xs uppercase tracking-wide rounded-full px-2.5 py-1 ${BADGE_TONES[tone]} ${className}`}
       {...props}
     />
+  );
+}
+
+// ---------- ContentTypeBadge ----------
+
+/**
+ * Tom por quadrante do content_type. Reaproveita os 4 tons semânticos do
+ * design system (nunca mistura bg/text de dois tons no mesmo elemento — ver
+ * nota acima sobre não confiar em ordem de classe do Tailwind pra
+ * "sobrescrever" cor). "Convocar" ganha só uma borda por cima, que é aditivo
+ * e não compete com o tom.
+ */
+const QUADRANT_TONE: Record<ContentTypeQuadrant, BadgeTone> = {
+  entreter: "ambar",
+  inspirar: "dourado",
+  curadoria: "neutral",
+  convocar: "ambar",
+};
+const QUADRANT_EXTRA: Partial<Record<ContentTypeQuadrant, string>> = {
+  convocar: "border border-ambar/40",
+};
+
+export function ContentTypeBadge({ contentType }: { contentType: string }) {
+  const quadrant = CONTENT_TYPE_TO_QUADRANT[contentType];
+  const tone = quadrant ? QUADRANT_TONE[quadrant] : "neutral";
+  const extra = quadrant ? QUADRANT_EXTRA[quadrant] : undefined;
+  return (
+    <Badge tone={tone} className={extra}>
+      {CONTENT_TYPE_LABELS[contentType] ?? contentType}
+    </Badge>
   );
 }
 

@@ -5,9 +5,9 @@ import { ContentDetail } from "@/components/admin/ContentDetail";
 export const dynamic = "force-dynamic";
 
 /**
- * Editor (`/admin/editar/[id]`): mesma rota conceitual de `/admin/fila/[id]`,
- * caminho novo pra bater com a arquitetura de 3 áreas (Mesa/Preview/Editor).
- * ContentDetail não muda nesta fase — o julgamento sai dele só na Fase 4.
+ * Editor (`/admin/editar/[id]`): só copy + direção de mídia. O julgamento
+ * (aprovar/ajustar horário/rejeitar) mora na JudgmentBar do Preview IG
+ * (`/admin/p/[id]`) desde a Fase 4 da re-arquitetura.
  */
 export default async function EditarPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
