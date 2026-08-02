@@ -174,3 +174,18 @@ body {
     animation: none;
   }
 }
+
+/* Preview IG (Fase 1): disco de áudio do reel gira devagar, só decorativo. */
+@keyframes reel-disc-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.reel-disc-spin {
+  animation: reel-disc-spin 8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel-disc-spin {
+    animation: none;
+  }
+}
