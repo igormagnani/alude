@@ -28,8 +28,7 @@ function renderMock(item: PreviewItem) {
  * Tela cheia do Preview IG: cobre sidebar e AdminTabBar (ambos abaixo de
  * z-30). Header mínimo (fechar/posição/chevrons/editar), o mock centralizado
  * com largura de celular, e a JudgmentBar fixa embaixo quando a peça ainda
- * não foi publicada. Fechar vai pra /admin/fila por enquanto (rota Mesa
- * definitiva só existe na Fase 3).
+ * não foi publicada. Fechar e o fim da fila voltam pra Mesa (/admin, Fase 3).
  */
 export function PreviewShell({
   item,
@@ -50,7 +49,7 @@ export function PreviewShell({
   const isPublished = item.status === "publicado";
 
   function goTo(id: string | null) {
-    const target = id ? `/admin/p/${id}` : "/admin/fila";
+    const target = id ? `/admin/p/${id}` : "/admin";
     const reduced =
       typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
@@ -65,7 +64,7 @@ export function PreviewShell({
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
       if (target?.closest("input, textarea, select")) return;
-      if (e.key === "Escape") router.push("/admin/fila");
+      if (e.key === "Escape") router.push("/admin");
       else if (e.key === "ArrowLeft" && prevId) router.push(`/admin/p/${prevId}`);
       else if (e.key === "ArrowRight" && nextId) router.push(`/admin/p/${nextId}`);
     }
@@ -81,7 +80,7 @@ export function PreviewShell({
       >
         <div className="flex justify-start">
           <Link
-            href="/admin/fila"
+            href="/admin"
             aria-label="Fechar preview"
             className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 transition-colors duration-150 hover:bg-white/10 hover:text-white"
           >

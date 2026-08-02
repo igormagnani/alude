@@ -1,18 +1,7 @@
-import { notFound } from "next/navigation";
-import { supabaseAdmin } from "@/lib/supabase";
-import { ContentDetail } from "@/components/admin/ContentDetail";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
+/** Rota velha: o detalhe de fila virou o Preview IG (/admin/p/[id]) na Fase 1. */
 export default async function FilaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-
-  const { data: item } = await supabaseAdmin
-    .from("alude_content_items")
-    .select("*, topic:alude_topics(title)")
-    .eq("id", id)
-    .single();
-  if (!item) notFound();
-
-  return <ContentDetail item={item} />;
+  redirect(`/admin/p/${id}`);
 }

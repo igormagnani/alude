@@ -1,114 +1,89 @@
 import { supabaseAdmin } from "@/lib/supabase";
-import { ITEM_STATUS_LABELS, PLATFORM_LABELS, CONTENT_TYPE_QUADRANTS, CONTENT_TYPE_TO_QUADRANT } from "@/lib/content-constants";
-import { ProducaoToggle } from "@/components/admin/ProducaoToggle";
+import { MesaHeader } from "@/components/admin/mesa/MesaHeader";
+import { PrecisaDeVoce } from "@/components/admin/mesa/PrecisaDeVoce";
+import { MesaTimeline } from "@/components/admin/mesa/MesaTimeline";
+import { PublicadasRecentes, type PublicadaItem } from "@/components/admin/mesa/PublicadasRecentes";
 
-const COUNT_STATUSES = ["draft", "em_revisao", "aprovado", "agendado", "publicado"] as const;
+const MESA_FIELDS = "id, title, format, platforms, status, scheduled_at, asset";
 
-export default async function PainelPage() {
-  const [{ data: items }, { data: topicosNovos }, { data: proximos }, { data: producaoRow }, { data: igAuthRow }] =
-    await Promise.all([
-      supabaseAdmin.from("alude_content_items").select("status, content_type"),
-      supabaseAdmin.from("alude_topics").select("id").eq("status", "novo"),
-      supabaseAdmin
-        .from("alude_content_items")
-        .select("id, title, platforms, scheduled_at, status")
-        .not("scheduled_at", "is", null)
-        .in("status", ["aprovado", "agendado"])
-        .order("scheduled_at", { ascending: true })
-        .limit(7),
-      supabaseAdmin.from("alude_settings").select("value").eq("key", "producao_ligada").single(),
-      supabaseAdmin.from("alude_settings").select("value").eq("key", "ig_auth").maybeSingle(),
-    ]);
+/**
+ * Mesa (`/admin`): home única que substitui Painel + Fila + Agenda. Cinco
+ * buscas em paralelo; nenhuma delas decide o que é "hoje" — isso é trabalho
+ * do MesaTimeline via Intl + America/Sao_Paulo, nunca do fuso do servidor.
+ * "Atrasadas" não tem limite de janela de propósito (mesma regra da Agenda
+ * antiga): uma peça esquecida há 3 semanas continua visível até alguém
+ * decidir o que fazer com ela, nunca some sozinha.
+ */
+export default async function MesaPage() {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const windowEnd = new Date(now.getTime() + 16 * 24 * 60 * 60 * 1000).toISOString();
 
-  const counts: Record<string, number> = {};
-  for (const status of COUNT_STATUSES) counts[status] = 0;
-  const quadrantCounts: Record<string, number> = {};
-  for (const q of CONTENT_TYPE_QUADRANTS) quadrantCounts[q.key] = 0;
-  for (const item of items ?? []) {
-    if (item.status in counts) counts[item.status] += 1;
-    const quadrant = item.content_type ? CONTENT_TYPE_TO_QUADRANT[item.content_type] : undefined;
-    if (quadrant) quadrantCounts[quadrant] += 1;
-  }
-  const totalClassificado = Object.values(quadrantCounts).reduce((a, b) => a + b, 0);
+  const [
+    { data: pendentes },
+    { data: agendados },
+    { data: atrasadas },
+    { data: publicacoes },
+    { data: producaoRow },
+    { data: slotsRow },
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("alude_content_items")
+      .select(MESA_FIELDS)
+      .in("status", ["draft", "em_revisao"])
+      .order("scheduled_at", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true }),
+    supabaseAdmin
+      .from("alude_content_items")
+      .select(MESA_FIELDS)
+      .in("status", ["aprovado", "agendado"])
+      .not("scheduled_at", "is", null)
+      .gte("scheduled_at", nowIso)
+      .lte("scheduled_at", windowEnd)
+      .order("scheduled_at", { ascending: true }),
+    supabaseAdmin
+      .from("alude_content_items")
+      .select(MESA_FIELDS)
+      .in("status", ["em_revisao", "aprovado"])
+      .not("scheduled_at", "is", null)
+      .lt("scheduled_at", nowIso)
+      .order("scheduled_at", { ascending: true }),
+    supabaseAdmin
+      .from("alude_publications")
+      .select("id, platform, published_at, external_url, metrics, item:alude_content_items(id, title, format, asset)")
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(6),
+    supabaseAdmin.from("alude_settings").select("value").eq("key", "producao_ligada").single(),
+    supabaseAdmin.from("alude_settings").select("value").eq("key", "slots").single(),
+  ]);
 
-  const producaoLigada = producaoRow?.value === true;
-
-  const igAuthValue = igAuthRow?.value as { token?: string; username?: string | null } | null | undefined;
-  const igConfigurado = Boolean(igAuthValue?.token) || Boolean(process.env.ALUDE_IG_ACCESS_TOKEN);
-  const igUsername = igAuthValue?.username ?? null;
-  const conexoes: { nome: string; ok: boolean; detalhe?: string }[] = [
-    { nome: "Instagram", ok: igConfigurado, detalhe: igUsername ? `@${igUsername}` : undefined },
-    { nome: "TikTok", ok: false },
-    { nome: "YouTube", ok: false },
-  ];
+  const pendentesComData = (pendentes ?? []).filter(
+    (p) => p.scheduled_at && new Date(p.scheduled_at).getTime() >= now.getTime()
+  );
 
   return (
     <div className="space-y-10">
-      <div>
-        <p className="text-dourado text-xs uppercase tracking-[0.2em] mb-2">Painel</p>
-        <h1 className="display text-3xl text-areia">Como a máquina está hoje</h1>
-      </div>
-
-      <ProducaoToggle ligada={producaoLigada} />
+      <MesaHeader ligada={producaoRow?.value === true} pendentesCount={pendentes?.length ?? 0} />
 
       <section>
-        <h2 className="text-sm text-areia/50 uppercase tracking-wide mb-3">Peças por estágio</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {COUNT_STATUSES.map((status) => (
-            <div key={status} className="rounded-xl border border-areia/10 bg-breu/60 px-4 py-4">
-              <p className="text-2xl display text-areia">{counts[status]}</p>
-              <p className="text-xs text-areia/50 mt-1">{ITEM_STATUS_LABELS[status]}</p>
-            </div>
-          ))}
-          <div className="rounded-xl border border-areia/10 bg-breu/60 px-4 py-4">
-            <p className="text-2xl display text-ambar">{topicosNovos?.length ?? 0}</p>
-            <p className="text-xs text-areia/50 mt-1">Tópicos novos</p>
-          </div>
-        </div>
-        {totalClassificado > 0 && (
-          <p className="text-xs text-areia/40 mt-3">
-            Mix por quadrante: {CONTENT_TYPE_QUADRANTS.map((q) => `${q.label} ${quadrantCounts[q.key]}`).join(" · ")}
-          </p>
-        )}
+        <h2 className="mb-3 text-sm uppercase tracking-wide text-areia/50">Precisa de você</h2>
+        <PrecisaDeVoce items={pendentes ?? []} />
       </section>
 
       <section>
-        <h2 className="text-sm text-areia/50 uppercase tracking-wide mb-3">Próximos agendamentos</h2>
-        {proximos && proximos.length > 0 ? (
-          <ul className="divide-y divide-areia/10 rounded-xl border border-areia/10 bg-breu/60">
-            {proximos.map((item) => (
-              <li key={item.id} className="px-4 py-3 flex items-center justify-between gap-4">
-                <span className="text-sm text-areia">{item.title}</span>
-                <span className="text-xs text-areia/50 shrink-0">
-                  {(item.platforms ?? []).map((p: string) => PLATFORM_LABELS[p] ?? p).join(", ")} ·{" "}
-                  {item.scheduled_at
-                    ? new Date(item.scheduled_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })
-                    : "sem data"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-areia/40 italic">Nada agendado ainda.</p>
-        )}
+        <h2 className="mb-3 text-sm uppercase tracking-wide text-areia/50">Timeline</h2>
+        <MesaTimeline
+          agendados={agendados ?? []}
+          pendentesComData={pendentesComData}
+          atrasadas={atrasadas ?? []}
+          slots={(slotsRow?.value as Record<string, Array<{ dia: string; hora: string; formato: string }>>) ?? {}}
+        />
       </section>
 
       <section>
-        <h2 className="text-sm text-areia/50 uppercase tracking-wide mb-3">Conexões</h2>
-        <div className="flex flex-wrap gap-3">
-          {conexoes.map((c) => (
-            <div
-              key={c.nome}
-              className="rounded-lg border border-areia/10 bg-breu/60 px-4 py-2 flex items-center gap-2"
-            >
-              <span className={`h-2 w-2 rounded-full ${c.ok ? "bg-ambar" : "bg-areia/25"}`} />
-              <span className="text-sm text-areia/80">{c.nome}</span>
-              <span className="text-xs text-areia/40">
-                {c.ok ? (c.detalhe ?? "configurado") : "aguardando conexão"}
-              </span>
-            </div>
-          ))}
-        </div>
+        <h2 className="mb-3 text-sm uppercase tracking-wide text-areia/50">Publicadas recentemente</h2>
+        <PublicadasRecentes publications={(publicacoes ?? []) as unknown as PublicadaItem[]} />
       </section>
     </div>
   );
