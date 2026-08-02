@@ -1,6 +1,7 @@
 "use client";
 
 import Lenis from "lenis";
+import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 /**
@@ -33,9 +34,15 @@ export function Scroller({ children }: { children: React.ReactNode }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [suave] = useState(querSuave);
+  // O admin tem região de scroll própria (fixed inset-0) e não usa o Scroller;
+  // com o Lenis ativo por cima, a roda do mouse morre lá (o wrapper captura o
+  // wheel e não tem o que rolar, já que elemento fixed não gera scroll height).
+  const pathname = usePathname();
+  const isAdmin = pathname?.startsWith("/admin") ?? false;
 
   // Smooth scroll só em ponteiro fino: no celular ele disputa com o momentum nativo.
   useEffect(() => {
+    if (isAdmin) return;
     const wrapper = wrapperRef.current;
     const content = contentRef.current;
     if (!suave || !wrapper || !content) return;
@@ -49,14 +56,17 @@ export function Scroller({ children }: { children: React.ReactNode }) {
       cancelAnimationFrame(frame);
       lenis.destroy();
     };
-  }, [suave]);
+  }, [suave, isAdmin]);
 
   // Com o documento travado, seta e Page Down não teriam alvo: quem rola precisa poder
   // receber foco. O anel de foco fica escondido porque cercar a tela inteira não diz
   // nada a ninguém; os links de dentro mantêm o foco visível deles.
   useEffect(() => {
+    if (isAdmin) return;
     wrapperRef.current?.focus({ preventScroll: true });
-  }, []);
+  }, [isAdmin]);
+
+  if (isAdmin) return <>{children}</>;
 
   return (
     <ScrollerCtx.Provider value={wrapperRef}>
