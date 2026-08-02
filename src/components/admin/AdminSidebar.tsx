@@ -4,17 +4,22 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const LINKS = [
-  { href: "/admin", label: "Painel" },
-  { href: "/admin/fila", label: "Revisão" },
-  { href: "/admin/agenda", label: "Agenda" },
-  { href: "/admin/topicos", label: "Pauta" },
-  { href: "/admin/performance", label: "Performance" },
-  { href: "/admin/configuracoes", label: "Configurações" },
+  { href: "/admin", label: "Mesa" },
+  { href: "/admin/pauta", label: "Pauta" },
+  { href: "/admin/mais", label: "Mais" },
 ];
+
+/** Mesma regra de "ativo" da AdminTabBar: ver comentário lá. */
+const MESA_PREFIXES = ["/admin/p/", "/admin/editar/", "/admin/fila", "/admin/agenda"];
+
+function isMesaPath(pathname: string): boolean {
+  if (pathname === "/admin") return true;
+  return MESA_PREFIXES.some((p) => pathname.startsWith(p));
+}
 
 /** Navegação de desktop (lg+). No mobile, quem navega é a AdminTabBar. */
 export function AdminSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const router = useRouter();
 
   async function sair() {
@@ -31,7 +36,7 @@ export function AdminSidebar() {
       </div>
       <ul className="flex-1 px-3 py-4 space-y-1">
         {LINKS.map((link) => {
-          const active = link.href === "/admin" ? pathname === "/admin" : pathname?.startsWith(link.href);
+          const active = link.href === "/admin" ? isMesaPath(pathname) : pathname.startsWith(link.href);
           return (
             <li key={link.href}>
               <Link

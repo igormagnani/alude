@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { adminFetch } from "@/lib/admin-client";
 import {
   PILLAR_LABELS,
@@ -11,6 +12,7 @@ import {
   CONTENT_TYPE_TO_QUADRANT,
   CONTENT_TYPE_QUADRANT_BADGE,
 } from "@/lib/content-constants";
+import { Badge, Button, Card, EmptyState, Input, Select, type BadgeTone } from "@/components/admin/ui";
 
 type Topic = {
   id: string;
@@ -21,6 +23,7 @@ type Topic = {
   content_type: string | null;
   score: number;
   status: string;
+  used_item_id?: string | null;
 };
 
 const PILLAR_OPTIONS = Object.keys(PILLAR_LABELS);
@@ -35,8 +38,28 @@ function ContentTypeBadge({ contentType }: { contentType: string }) {
   );
 }
 
-export function TopicosList({ initialTopics }: { initialTopics: Topic[] }) {
+function statusTone(status: string): BadgeTone {
+  if (status === "usado") return "dourado";
+  if (status === "aprovado") return "ambar";
+  return "neutral";
+}
+
+/**
+ * Pauta: triagem de tópicos em cards (primitivas `ui.tsx`). Um tópico já
+ * `usado` não tem mais ação de aprovar/descartar, só o link pra peça que
+ * nasceu dele — `usedItemsById` vem da segunda query manual da page (Pauta
+ * não confia em FK pra isso, `used_item_id` não tem). A criação fica atrás de
+ * um disclosure: a pauta é sobretudo triagem, não cadastro.
+ */
+export function TopicosList({
+  initialTopics,
+  usedItemsById,
+}: {
+  initialTopics: Topic[];
+  usedItemsById: Record<string, { id: string; title: string }>;
+}) {
   const [topics, setTopics] = useState(initialTopics);
+  const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState({ title: "", angle: "", pillar: "", content_type: "", score: "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -59,6 +82,7 @@ export function TopicosList({ initialTopics }: { initialTopics: Topic[] }) {
       });
       setTopics((prev) => [topic, ...prev]);
       setForm({ title: "", angle: "", pillar: "", content_type: "", score: "" });
+      setFormOpen(false);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Não deu pra criar o tópico.");
     } finally {
@@ -81,101 +105,118 @@ export function TopicosList({ initialTopics }: { initialTopics: Topic[] }) {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={criar} className="rounded-xl border border-areia/10 bg-breu/60 p-5 space-y-3">
-        <p className="text-sm text-areia/60">Novo tópico</p>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <input
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            placeholder="Título"
-            className="rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
-          />
-          <input
-            value={form.angle}
-            onChange={(e) => setForm((f) => ({ ...f, angle: e.target.value }))}
-            placeholder="Ângulo (opcional)"
-            className="rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
-          />
-          <select
-            value={form.pillar}
-            onChange={(e) => setForm((f) => ({ ...f, pillar: e.target.value }))}
-            className="rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
-          >
-            <option value="">Cenário (opcional)</option>
-            {PILLAR_OPTIONS.map((p) => (
-              <option key={p} value={p}>
-                {PILLAR_LABELS[p]}
-              </option>
-            ))}
-          </select>
-          <select
-            value={form.content_type}
-            onChange={(e) => setForm((f) => ({ ...f, content_type: e.target.value }))}
-            className="rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
-          >
-            <option value="">Tipo (opcional)</option>
-            {CONTENT_TYPE_QUADRANTS.map((q) => (
-              <optgroup key={q.key} label={q.label}>
-                {q.types.map((t) => (
-                  <option key={t} value={t}>
-                    {CONTENT_TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <input
-            value={form.score}
-            onChange={(e) => setForm((f) => ({ ...f, score: e.target.value }))}
-            placeholder="Score (opcional)"
-            type="number"
-            className="rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
-          />
-        </div>
-        <button type="submit" disabled={busy || !form.title.trim()} className="rounded-lg bg-ambar text-breu text-sm font-semibold px-4 py-2 hover:opacity-90 disabled:opacity-40">
-          Adicionar
-        </button>
-      </form>
+      <div>
+        {formOpen ? (
+          <Card padding="md" className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-areia/60">Novo tópico</p>
+              <button
+                type="button"
+                onClick={() => setFormOpen(false)}
+                className="text-xs text-areia/40 transition-colors duration-150 hover:text-areia"
+              >
+                cancelar
+              </button>
+            </div>
+            <form onSubmit={criar} className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="Título"
+                  autoFocus
+                />
+                <Input
+                  value={form.angle}
+                  onChange={(e) => setForm((f) => ({ ...f, angle: e.target.value }))}
+                  placeholder="Ângulo (opcional)"
+                />
+                <Select value={form.pillar} onChange={(e) => setForm((f) => ({ ...f, pillar: e.target.value }))}>
+                  <option value="">Cenário (opcional)</option>
+                  {PILLAR_OPTIONS.map((p) => (
+                    <option key={p} value={p}>
+                      {PILLAR_LABELS[p]}
+                    </option>
+                  ))}
+                </Select>
+                <Select
+                  value={form.content_type}
+                  onChange={(e) => setForm((f) => ({ ...f, content_type: e.target.value }))}
+                >
+                  <option value="">Tipo (opcional)</option>
+                  {CONTENT_TYPE_QUADRANTS.map((q) => (
+                    <optgroup key={q.key} label={q.label}>
+                      {q.types.map((t) => (
+                        <option key={t} value={t}>
+                          {CONTENT_TYPE_LABELS[t]}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </Select>
+                <Input
+                  value={form.score}
+                  onChange={(e) => setForm((f) => ({ ...f, score: e.target.value }))}
+                  placeholder="Score (opcional)"
+                  type="number"
+                />
+              </div>
+              <Button type="submit" variant="primary" disabled={busy || !form.title.trim()}>
+                {busy ? "Adicionando…" : "Adicionar"}
+              </Button>
+            </form>
+          </Card>
+        ) : (
+          <Button variant="secondary" onClick={() => setFormOpen(true)}>
+            + Novo tópico
+          </Button>
+        )}
+      </div>
 
-      {err && <p className="text-sm text-ambar/90">{err}</p>}
+      {err && <p className="text-sm text-brasa">{err}</p>}
 
       {topics.length === 0 ? (
-        <p className="text-sm text-areia/40 italic">Nenhum tópico na fila agora.</p>
+        <EmptyState title="Pauta limpa" description="Nenhum tópico esperando triagem agora." />
       ) : (
-        <div className="rounded-xl border border-areia/10 bg-breu/60 divide-y divide-areia/10">
-          {topics.map((t) => (
-            <div key={t.id} className="px-5 py-4 flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="text-[10px] uppercase tracking-wide rounded-full bg-areia/10 text-areia/60 px-2 py-0.5">
-                    {TOPIC_SOURCE_LABELS[t.source] ?? t.source}
-                  </span>
-                  {t.content_type && <ContentTypeBadge contentType={t.content_type} />}
-                  {t.pillar && (
-                    <span className="text-[10px] uppercase tracking-wide rounded-full bg-ambar/15 text-ambar px-2 py-0.5">
-                      {PILLAR_LABELS[t.pillar]}
-                    </span>
-                  )}
-                  {t.status !== "novo" && (
-                    <span className="text-[10px] text-areia/40">{TOPIC_STATUS_LABELS[t.status]}</span>
+        <div className="space-y-2">
+          {topics.map((t) => {
+            const usedItem = t.used_item_id ? usedItemsById[t.used_item_id] : null;
+            return (
+              <Card key={t.id} padding="sm">
+                <div className="flex items-center gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                      <Badge tone="neutral">{TOPIC_SOURCE_LABELS[t.source] ?? t.source}</Badge>
+                      {t.content_type && <ContentTypeBadge contentType={t.content_type} />}
+                      {t.pillar && <Badge tone="ambar">{PILLAR_LABELS[t.pillar]}</Badge>}
+                      {t.status !== "novo" && <Badge tone={statusTone(t.status)}>{TOPIC_STATUS_LABELS[t.status]}</Badge>}
+                    </div>
+                    <p className="truncate text-sm text-areia">{t.title}</p>
+                    {t.angle && <p className="truncate text-xs text-areia/50">{t.angle}</p>}
+                    {t.status === "usado" && usedItem && (
+                      <Link
+                        href={`/admin/p/${usedItem.id}`}
+                        className="mt-1 inline-block text-xs text-dourado transition-colors duration-150 hover:text-ambar"
+                      >
+                        ver peça →
+                      </Link>
+                    )}
+                  </div>
+                  <p className="w-10 shrink-0 text-right text-sm text-dourado">{t.score}</p>
+                  {t.status === "novo" && (
+                    <div className="flex shrink-0 gap-2">
+                      <Button variant="primary" onClick={() => agir(t.id, "approve")}>
+                        Aprovar
+                      </Button>
+                      <Button variant="secondary" onClick={() => agir(t.id, "discard")}>
+                        Descartar
+                      </Button>
+                    </div>
                   )}
                 </div>
-                <p className="text-sm text-areia truncate">{t.title}</p>
-                {t.angle && <p className="text-xs text-areia/50 truncate">{t.angle}</p>}
-              </div>
-              <p className="text-sm text-dourado w-12 text-right shrink-0">{t.score}</p>
-              {t.status === "novo" && (
-                <div className="flex gap-2 shrink-0">
-                  <button onClick={() => agir(t.id, "approve")} className="rounded-lg bg-ambar text-breu text-xs font-semibold px-3 py-1.5 hover:opacity-90">
-                    Aprovar
-                  </button>
-                  <button onClick={() => agir(t.id, "discard")} className="rounded-lg border border-areia/20 text-xs text-areia/70 px-3 py-1.5 hover:border-areia/40">
-                    Descartar
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

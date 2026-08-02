@@ -5,15 +5,27 @@ import { usePathname } from "next/navigation";
 import type { SVGProps } from "react";
 
 const TABS = [
-  { href: "/admin/fila", label: "Revisão", Icon: IconReview },
-  { href: "/admin/agenda", label: "Agenda", Icon: IconAgenda },
-  { href: "/admin/topicos", label: "Pauta", Icon: IconPauta },
-  { href: "/admin", label: "Mais", Icon: IconMore },
+  { href: "/admin", label: "Mesa", Icon: IconMesa },
+  { href: "/admin/pauta", label: "Pauta", Icon: IconPauta },
+  { href: "/admin/mais", label: "Mais", Icon: IconMais },
 ] as const;
+
+/**
+ * Mesa é "home" de fato: fica ativa em /admin e em toda rota que só existe
+ * a partir dela (Preview, Editor, e os stubs de Fila/Agenda enquanto o
+ * usuário ainda não terminou o redirect). Barras com "/" garantem que
+ * "/admin/p/" nunca casa com "/admin/pauta" por acidente.
+ */
+const MESA_PREFIXES = ["/admin/p/", "/admin/editar/", "/admin/fila", "/admin/agenda"];
+
+function isMesaPath(pathname: string): boolean {
+  if (pathname === "/admin") return true;
+  return MESA_PREFIXES.some((p) => pathname.startsWith(p));
+}
 
 /** Navegação de mobile (abaixo de lg). Fixa no rodapé, com safe-area do iOS. */
 export function AdminTabBar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   return (
     <nav
@@ -21,7 +33,7 @@ export function AdminTabBar() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {TABS.map(({ href, label, Icon }) => {
-        const active = href === "/admin" ? pathname === "/admin" : pathname?.startsWith(href);
+        const active = href === "/admin" ? isMesaPath(pathname) : pathname.startsWith(href);
         return (
           <Link
             key={href}
@@ -39,22 +51,12 @@ export function AdminTabBar() {
   );
 }
 
-function IconReview(props: SVGProps<SVGSVGElement>) {
+function IconMesa(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="8" />
-      <path d="M9 12l2 2 4-4" />
-    </svg>
-  );
-}
-
-function IconAgenda(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect x="4" y="5" width="16" height="15" rx="2" />
-      <path d="M4 9h16" />
-      <path d="M8 3v4" />
-      <path d="M16 3v4" />
+      <rect x="3.5" y="4" width="17" height="12" rx="1.5" />
+      <path d="M8 20h8" />
+      <path d="M12 16v4" />
     </svg>
   );
 }
@@ -72,7 +74,7 @@ function IconPauta(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function IconMore(props: SVGProps<SVGSVGElement>) {
+function IconMais(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
