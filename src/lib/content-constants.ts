@@ -25,6 +25,30 @@ export function isScheduledLate(scheduledAt: string | null): boolean {
   return new Date(scheduledAt).getTime() < Date.now();
 }
 
+/**
+ * Valor pronto pra um <input type="datetime-local"> representando o horário
+ * de `scheduledAt` no fuso America/Sao_Paulo (não o fuso do navegador nem UTC).
+ * Substitui o padrão `new Date(x).toISOString().slice(0, 16)` que aparecia
+ * espalhado pelo admin: toISOString() sempre devolve UTC, então o picker
+ * mostrava a hora errada (3h adiantada) mesmo com o navegador em São Paulo.
+ * Sem argumento (ou nulo), usa agora.
+ */
+export function toLocalInputValue(scheduledAt: string | null | undefined): string {
+  const date = scheduledAt ? new Date(scheduledAt) : new Date();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  const hour = get("hour") === "24" ? "00" : get("hour");
+  return `${get("year")}-${get("month")}-${get("day")}T${hour}:${get("minute")}`;
+}
+
 export const PILLAR_LABELS: Record<string, string> = {
   pov_cabine: "POV palco",
   recap: "Recap de festa",

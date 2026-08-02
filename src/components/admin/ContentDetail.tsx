@@ -11,9 +11,11 @@ import {
   ITEM_STATUS_LABELS,
   formatScheduledAt,
   isScheduledLate,
+  toLocalInputValue,
 } from "@/lib/content-constants";
-import { ContentTypeBadge } from "@/components/admin/FilaList";
+import { ContentTypeBadge } from "@/components/admin/ReviewFeed";
 import { ASSET_PROMPT_TOOLS, type AssetPrompt, type ContentAsset } from "@/lib/asset-types";
+import { Badge, Button, Card, Input, Select, Textarea, type BadgeTone } from "@/components/admin/ui";
 
 type DetailItem = {
   id: string;
@@ -30,7 +32,17 @@ type DetailItem = {
   asset: ContentAsset;
   scheduled_at: string | null;
   rejection_note: string | null;
+  topic: { title: string } | null;
 };
+
+/** Status de onde dá pra aprovar em 1 toque (espelha a API). */
+const APPROVE_FROM = ["draft", "em_revisao", "aprovado", "rejeitado"];
+
+function statusTone(status: string): BadgeTone {
+  if (status === "rejeitado") return "brasa";
+  if (status === "aprovado" || status === "agendado" || status === "publicado") return "dourado";
+  return "neutral";
+}
 
 function emptyPrompt(): AssetPrompt {
   return { label: "", tool: ASSET_PROMPT_TOOLS[0], model: "", prompt: "", aspect_ratio: "9:16", notes: "" };
@@ -50,16 +62,29 @@ export function ContentDetail({ item }: { item: DetailItem }) {
   const [saveOk, setSaveOk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  const [picker, setPicker] = useState<"approve" | "change" | null>(null);
+  const [pickerValue, setPickerValue] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState("");
-  const [scheduling, setScheduling] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState(
-    item.scheduled_at ? new Date(item.scheduled_at).toISOString().slice(0, 16) : ""
-  );
+  const [archiving, setArchiving] = useState(false);
 
   const standby = item.asset?.standby === "depende-igor";
   const media = item.asset?.media;
-  const late = isScheduledLate(item.scheduled_at) && (item.status === "em_revisao" || item.status === "aprovado");
+  const late = isScheduledLate(item.scheduled_at) && item.status !== "rejeitado";
+  const hasFutureSchedule = Boolean(item.scheduled_at) && !isScheduledLate(item.scheduled_at);
+
+  const displayStatus = item.status === "aprovado" && item.scheduled_at ? "agendado" : item.status;
+  const canApprove = APPROVE_FROM.includes(item.status);
+  const canChangeTime = item.status !== "publicado" && item.status !== "arquivado";
+  const canReject = item.status !== "publicado" && item.status !== "arquivado";
+  const canArchive = item.status !== "arquivado";
+
+  function closeSecondary() {
+    setPicker(null);
+    setRejecting(false);
+    setArchiving(false);
+  }
 
   async function save() {
     setSaving(true);
@@ -94,11 +119,15 @@ export function ContentDetail({ item }: { item: DetailItem }) {
     }
   }
 
-  async function approve() {
+  async function approveAndSchedule(iso: string) {
     setBusy(true);
     setErr(null);
     try {
-      await adminFetch(`/api/admin/items/${item.id}`, { method: "PATCH", body: JSON.stringify({ action: "approve" }) });
+      await adminFetch(`/api/admin/items/${item.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ action: "approve_and_schedule", scheduled_at: iso }),
+      });
+      setPicker(null);
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Não deu pra aprovar.");
@@ -107,7 +136,50 @@ export function ContentDetail({ item }: { item: DetailItem }) {
     }
   }
 
-  async function reject() {
+  function approveNow() {
+    if (!item.scheduled_at) return;
+    approveAndSchedule(item.scheduled_at);
+  }
+
+  function openApprovePicker() {
+    closeSecondary();
+    setPicker("approve");
+    setPickerValue(toLocalInputValue(item.scheduled_at));
+  }
+
+  function openChangePicker() {
+    closeSecondary();
+    setPicker("change");
+    setPickerValue(toLocalInputValue(item.scheduled_at));
+  }
+
+  async function confirmPicker() {
+    if (!pickerValue) return;
+    const iso = new Date(pickerValue).toISOString();
+    if (picker === "approve") {
+      await approveAndSchedule(iso);
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      // Item já aprovado/agendado: usa a action `schedule`, que também
+      // atualiza as alude_publications pendentes (corrige o bug de
+      // reagendamento). Ainda em revisão: só edita o horário proposto.
+      const action = item.status === "aprovado" || item.status === "agendado" ? "schedule" : "edit";
+      const body =
+        action === "schedule" ? { action, scheduled_at: iso } : { action, fields: { scheduled_at: iso } };
+      await adminFetch(`/api/admin/items/${item.id}`, { method: "PATCH", body: JSON.stringify(body) });
+      setPicker(null);
+      router.refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Não deu pra mudar o horário.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmReject() {
     if (!note.trim()) return;
     setBusy(true);
     setErr(null);
@@ -117,6 +189,7 @@ export function ContentDetail({ item }: { item: DetailItem }) {
         body: JSON.stringify({ action: "reject", rejection_note: note }),
       });
       setRejecting(false);
+      setNote("");
       router.refresh();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Não deu pra rejeitar.");
@@ -125,19 +198,18 @@ export function ContentDetail({ item }: { item: DetailItem }) {
     }
   }
 
-  async function schedule() {
-    if (!scheduledAt) return;
+  async function confirmArchive() {
     setBusy(true);
     setErr(null);
     try {
       await adminFetch(`/api/admin/items/${item.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ action: "schedule", scheduled_at: new Date(scheduledAt).toISOString() }),
+        body: JSON.stringify({ action: "archive" }),
       });
-      setScheduling(false);
+      setArchiving(false);
       router.refresh();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Não deu pra agendar.");
+      setErr(e instanceof Error ? e.message : "Não deu pra arquivar.");
     } finally {
       setBusy(false);
     }
@@ -157,178 +229,185 @@ export function ContentDetail({ item }: { item: DetailItem }) {
 
   return (
     <div className="space-y-8">
-      <Link
-        href="/admin/fila"
-        className="inline-block text-sm text-areia/50 hover:text-areia"
-      >
+      <Link href="/admin/fila" className="inline-block text-sm text-areia/50 hover:text-areia">
         ← Voltar pra fila
       </Link>
 
-      <div className="rounded-xl border border-areia/10 bg-breu/60 px-4 py-3 flex items-center gap-2 flex-wrap text-sm">
+      <Card padding="sm" className="flex items-center gap-2 flex-wrap text-sm">
         <span className="font-semibold text-areia">
           {item.platforms.length > 0 ? item.platforms.map((p) => PLATFORM_LABELS[p] ?? p).join(" · ") : "sem plataforma"}
         </span>
         <span className="text-areia/30">·</span>
-        <span className={late ? "font-semibold text-ambar" : "text-areia/70"}>{formatScheduledAt(item.scheduled_at)}</span>
-        {late && (
-          <span className="text-[10px] uppercase tracking-wide rounded-full bg-ambar/15 text-ambar px-2 py-0.5">
-            atrasado
-          </span>
-        )}
-        <span className="ml-auto text-xs uppercase tracking-wide rounded-full border border-dourado/40 text-dourado px-2.5 py-1">
-          {ITEM_STATUS_LABELS[item.status] ?? item.status}
+        <span className={`display text-lg leading-none ${late ? "text-brasa" : "text-areia"}`}>
+          {formatScheduledAt(item.scheduled_at)}
         </span>
-      </div>
+        {late && <Badge tone="brasa">atrasado</Badge>}
+        {item.topic?.title && (
+          <span className="w-full text-xs text-areia/50 sm:w-auto sm:ml-1">da pauta: {item.topic.title}</span>
+        )}
+        <span className="ml-auto flex flex-col items-end gap-1">
+          <Badge tone={statusTone(displayStatus)}>{ITEM_STATUS_LABELS[displayStatus] ?? displayStatus}</Badge>
+          {displayStatus === "agendado" && (
+            <span className="text-[10px] text-areia/40">entra na fila de publicação em minutos</span>
+          )}
+        </span>
+      </Card>
 
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <ContentTypeBadge contentType={item.content_type} />
-          <span className="text-xs uppercase tracking-wide rounded-full bg-ambar/15 text-ambar px-2.5 py-1">
-            {PILLAR_LABELS[item.pillar] ?? item.pillar}
-          </span>
-          <span className="text-xs uppercase tracking-wide rounded-full bg-areia/10 text-areia/70 px-2.5 py-1">
-            {FORMAT_LABELS[item.format] ?? item.format}
-          </span>
+          <Badge tone="dourado">{PILLAR_LABELS[item.pillar] ?? item.pillar}</Badge>
+          <Badge tone="neutral">{FORMAT_LABELS[item.format] ?? item.format}</Badge>
         </div>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="rounded-lg bg-ambar text-breu text-sm font-semibold px-4 py-2 hover:opacity-90 disabled:opacity-40"
-        >
+        <Button variant="primary" onClick={save} disabled={saving}>
           {saveOk ? "Salvo" : saving ? "Salvando..." : "Salvar edição"}
-        </button>
+        </Button>
       </div>
 
       {standby && (
-        <p className="text-xs text-ambar/80 bg-ambar/10 border border-ambar/20 rounded-lg px-3 py-2">
+        <p className="rounded-lg border border-brasa/20 bg-brasa/10 px-3 py-2 text-xs text-brasa">
           Essa peça depende de gravação ou aprovação do Igor. Não dá pra agendar até isso resolver.
         </p>
       )}
 
       {item.status === "rejeitado" && item.rejection_note && (
-        <p className="text-xs text-areia/60 bg-areia/5 border border-areia/10 rounded-lg px-3 py-2">
-          Motivo da rejeição: {item.rejection_note}
+        <p className="rounded-lg border border-brasa/20 bg-brasa/10 px-3 py-2 text-xs text-brasa">
+          Rejeitado: {item.rejection_note}
         </p>
       )}
 
-      {err && <p className="text-sm text-ambar/90">{err}</p>}
+      {err && <p className="text-sm text-brasa">{err}</p>}
 
       <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
-        {/* Coluna esquerda: copy */}
+        {/* Coluna de copy: no mobile vem depois da mídia (que leva order-first) */}
         <div className="space-y-6">
           <Field label="Título">
-            <input
+            <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-lg bg-noite border border-areia/15 px-3 py-2 text-areia outline-none focus:border-ambar font-display"
+              className="font-display"
             />
           </Field>
 
           <Field label="Hook (gancho de abertura)">
-            <textarea
-              value={hook}
-              onChange={(e) => setHook(e.target.value)}
-              rows={2}
-              className="w-full rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
-            />
+            <Textarea value={hook} onChange={(e) => setHook(e.target.value)} rows={2} />
           </Field>
 
           <Field label="Roteiro">
-            <textarea
+            <Textarea
               value={roteiro}
               onChange={(e) => setRoteiro(e.target.value)}
               rows={10}
-              className="w-full rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar font-mono leading-relaxed"
+              className="font-mono leading-relaxed"
             />
           </Field>
 
           <Field label="Legenda">
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={4}
-              className="w-full rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
-            />
+            <Textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={4} />
           </Field>
 
           <Field label="Hashtags (separadas por espaço)">
-            <input
+            <Input
               value={hashtagsText}
               onChange={(e) => setHashtagsText(e.target.value)}
-              className="w-full rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
               placeholder="#alude #festa"
             />
           </Field>
 
-          <div className="rounded-xl border border-areia/10 bg-breu/60 p-4 space-y-4">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-areia/50 font-semibold">Ações</p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={approve}
-                disabled={busy || item.status === "aprovado"}
-                className="rounded-lg bg-ambar text-breu text-sm font-semibold px-3 py-1.5 hover:opacity-90 disabled:opacity-40"
-              >
-                Aprovar
-              </button>
-              <button
-                onClick={() => setRejecting((v) => !v)}
-                className="rounded-lg border border-areia/20 text-sm text-areia/80 px-3 py-1.5 hover:border-areia/40"
-              >
-                Rejeitar
-              </button>
-              <button
-                onClick={() => setScheduling((v) => !v)}
-                disabled={standby || item.status !== "aprovado"}
-                title={standby ? "Depende do Igor" : item.status !== "aprovado" ? "Aprova primeiro" : ""}
-                className="rounded-lg border border-areia/20 text-sm text-areia/80 px-3 py-1.5 hover:border-areia/40 disabled:opacity-30 disabled:hover:border-areia/20"
-              >
-                Agendar
-              </button>
-            </div>
+          <Card padding="md" className="space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-areia/50">Ações</p>
 
-            {rejecting && (
+            {picker ? (
               <div className="space-y-2">
-                <textarea
+                <Input
+                  type="datetime-local"
+                  value={pickerValue}
+                  onChange={(e) => setPickerValue(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="primary" onClick={confirmPicker} disabled={busy || !pickerValue}>
+                    {busy ? "Confirmando…" : picker === "approve" ? "Confirmar aprovação" : "Confirmar novo horário"}
+                  </Button>
+                  <Button variant="ghost" onClick={closeSecondary}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : rejecting ? (
+              <div className="space-y-2">
+                <Textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   rows={2}
                   placeholder="Por que essa peça não vai pra frente?"
-                  className="w-full rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
+                  autoFocus
                 />
-                <button
-                  onClick={reject}
-                  disabled={busy || !note.trim()}
-                  className="rounded-lg bg-ambar text-breu text-sm font-semibold px-3 py-1.5 hover:opacity-90 disabled:opacity-40"
-                >
-                  Confirmar rejeição
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="destructive" onClick={confirmReject} disabled={busy || !note.trim()}>
+                    {busy ? "Rejeitando…" : "Confirmar rejeição"}
+                  </Button>
+                  <Button variant="ghost" onClick={closeSecondary}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : archiving ? (
+              <div className="space-y-2">
+                <p className="text-xs text-areia/60">
+                  Arquivar tira essa peça do fluxo de revisão e agenda de vez. Confirma?
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="destructive" onClick={confirmArchive} disabled={busy}>
+                    {busy ? "Arquivando…" : "Confirmar arquivamento"}
+                  </Button>
+                  <Button variant="ghost" onClick={closeSecondary}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {canApprove && (
+                  <Button
+                    variant="primary"
+                    className="w-full"
+                    disabled={busy || standby}
+                    onClick={hasFutureSchedule ? approveNow : openApprovePicker}
+                  >
+                    {busy
+                      ? "Aprovando…"
+                      : hasFutureSchedule
+                        ? `Aprovar · ${formatScheduledAt(item.scheduled_at)}`
+                        : "Aprovar e escolher horário"}
+                  </Button>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {canChangeTime && (
+                    <Button variant="secondary" className="flex-1" onClick={openChangePicker}>
+                      Mudar horário
+                    </Button>
+                  )}
+                  {canReject && (
+                    <Button variant="destructive" className="flex-1" onClick={() => setRejecting(true)}>
+                      Rejeitar
+                    </Button>
+                  )}
+                </div>
+                {canArchive && (
+                  <Button variant="secondary" className="w-full" onClick={() => setArchiving(true)}>
+                    Arquivar
+                  </Button>
+                )}
               </div>
             )}
-
-            {scheduling && (
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="datetime-local"
-                  value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
-                  className="rounded-lg bg-noite border border-areia/15 px-3 py-2 text-sm text-areia outline-none focus:border-ambar"
-                />
-                <button
-                  onClick={schedule}
-                  disabled={busy || !scheduledAt}
-                  className="rounded-lg bg-ambar text-breu text-sm font-semibold px-3 py-1.5 hover:opacity-90 disabled:opacity-40"
-                >
-                  Confirmar agendamento
-                </button>
-              </div>
-            )}
-          </div>
+          </Card>
         </div>
 
-        {/* Coluna direita: mídia */}
-        <div className="space-y-6">
+        {/* Coluna de mídia: no mobile vem primeiro */}
+        <div className="order-first space-y-6 lg:order-none">
           <Field label="Mídia gerada">
-            <div className="rounded-xl bg-breu/60 border border-areia/10 p-4">
+            <Card padding="md">
               {media?.kind === "video" && media.video_url ? (
                 <video src={media.video_url} controls playsInline className="w-full rounded-lg max-h-[60vh] bg-black" />
               ) : media?.kind === "carousel" && media.carousel_slides?.length ? (
@@ -353,7 +432,7 @@ export function ContentDetail({ item }: { item: DetailItem }) {
                   Mídia ainda não gerada. Aparece aqui quando a peça for produzida.
                 </p>
               )}
-            </div>
+            </Card>
           </Field>
 
           <Field
@@ -364,28 +443,28 @@ export function ContentDetail({ item }: { item: DetailItem }) {
               </button>
             }
           >
-            <div className="rounded-xl bg-breu/60 border border-areia/10 p-4 space-y-4">
+            <Card padding="md" className="space-y-4">
               {prompts.length === 0 ? (
                 <p className="text-xs text-areia/40 italic">Nenhum prompt de mídia ainda.</p>
               ) : (
                 prompts.map((p, i) => (
                   <div key={i} className="border-t border-areia/10 pt-4 first:border-t-0 first:pt-0 space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <input
+                      <Input
                         value={p.label ?? ""}
                         onChange={(e) => updatePrompt(i, { label: e.target.value })}
                         placeholder={`cena ${i + 1}`}
-                        className="flex-1 rounded-lg bg-noite border border-areia/15 px-2 py-1 text-xs text-areia outline-none focus:border-ambar"
+                        className="flex-1 py-1! text-xs!"
                       />
-                      <button onClick={() => removePrompt(i)} className="text-xs text-areia/40 hover:text-ambar shrink-0">
+                      <button onClick={() => removePrompt(i)} className="text-xs text-areia/40 hover:text-brasa shrink-0">
                         remover
                       </button>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <select
+                      <Select
                         value={p.tool ?? ASSET_PROMPT_TOOLS[0]}
                         onChange={(e) => updatePrompt(i, { tool: e.target.value })}
-                        className="rounded-lg bg-noite border border-areia/15 px-2 py-1 text-[11px] text-areia outline-none focus:border-ambar"
+                        className="py-1! text-[11px]!"
                       >
                         {p.tool && !(ASSET_PROMPT_TOOLS as string[]).includes(p.tool) && (
                           <option value={p.tool}>{p.tool}</option>
@@ -395,37 +474,37 @@ export function ContentDetail({ item }: { item: DetailItem }) {
                             {t}
                           </option>
                         ))}
-                      </select>
-                      <input
+                      </Select>
+                      <Input
                         value={p.model ?? ""}
                         onChange={(e) => updatePrompt(i, { model: e.target.value })}
                         placeholder="model"
-                        className="rounded-lg bg-noite border border-areia/15 px-2 py-1 text-[11px] text-areia outline-none focus:border-ambar"
+                        className="py-1! text-[11px]!"
                       />
-                      <input
+                      <Input
                         value={p.aspect_ratio ?? ""}
                         onChange={(e) => updatePrompt(i, { aspect_ratio: e.target.value })}
                         placeholder="9:16"
-                        className="rounded-lg bg-noite border border-areia/15 px-2 py-1 text-[11px] text-areia outline-none focus:border-ambar"
+                        className="py-1! text-[11px]!"
                       />
                     </div>
-                    <textarea
+                    <Textarea
                       value={p.prompt}
                       onChange={(e) => updatePrompt(i, { prompt: e.target.value })}
                       rows={4}
                       placeholder="Prompt de geração"
-                      className="w-full rounded-lg bg-noite border border-areia/15 px-2 py-1.5 text-xs text-areia outline-none focus:border-ambar font-mono leading-relaxed"
+                      className="py-1.5! text-xs! font-mono leading-relaxed"
                     />
-                    <input
+                    <Input
                       value={p.notes ?? ""}
                       onChange={(e) => updatePrompt(i, { notes: e.target.value })}
                       placeholder="notas"
-                      className="w-full rounded-lg bg-noite border border-areia/15 px-2 py-1 text-[11px] text-areia/70 outline-none focus:border-ambar"
+                      className="py-1! text-[11px]! text-areia/70!"
                     />
                   </div>
                 ))
               )}
-            </div>
+            </Card>
           </Field>
         </div>
       </div>

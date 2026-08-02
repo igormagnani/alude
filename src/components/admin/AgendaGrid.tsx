@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { adminFetch } from "@/lib/admin-client";
-import { PLATFORM_LABELS, FORMAT_LABELS, DIA_LABELS } from "@/lib/content-constants";
+import { PLATFORM_LABELS, FORMAT_LABELS, DIA_LABELS, toLocalInputValue } from "@/lib/content-constants";
 import { getAssetThumbnail, type ContentAsset } from "@/lib/asset-types";
 
 const DIA_BY_GETDAY = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
@@ -145,7 +145,7 @@ export function AgendaGrid({
                               <button
                                 onClick={() => {
                                   setEditingId(item.id);
-                                  setValue(new Date(item.scheduled_at).toISOString().slice(0, 16));
+                                  setValue(toLocalInputValue(item.scheduled_at));
                                 }}
                                 className="text-[9px] text-areia/40 hover:text-areia px-1.5"
                               >
