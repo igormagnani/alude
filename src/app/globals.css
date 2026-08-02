@@ -6,6 +6,9 @@
   --areia: #f0e6d7;
   --ambar: #f2a412;
   --dourado: #d6ae70;
+  /* Brasa: única cor de alerta/erro/destrutivo do admin. Devolve o âmbar a
+     significar só ação (ver docs/plans/2026-07-... reformulação UX admin). */
+  --brasa: #d95d3a;
 }
 
 @theme inline {
@@ -14,6 +17,7 @@
   --color-areia: var(--areia);
   --color-ambar: var(--ambar);
   --color-dourado: var(--dourado);
+  --color-brasa: var(--brasa);
   --font-display: var(--font-archivo);
   --font-body: var(--font-inter);
 }
@@ -142,4 +146,31 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .press-reveal { animation: none; }
+}
+
+/* Admin (backstage): motion restrito e funcional, nunca decorativo.
+   card-out = saída de um card ao concluir uma ação (aprovar/rejeitar/agendar/arquivar).
+   pop = confirmação rápida de sucesso (ex: "Salvo"). Sem bounce/elastic; acelera
+   pra sair, desacelera pra entrar. */
+@keyframes admin-card-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to { opacity: 0; transform: scale(0.96) translateY(-6px); }
+}
+.admin-card-out {
+  animation: admin-card-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes admin-pop {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+.admin-pop {
+  animation: admin-pop 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-card-out,
+  .admin-pop {
+    animation: none;
+  }
 }
