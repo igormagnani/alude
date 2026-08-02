@@ -26,7 +26,7 @@ export function isScheduledLate(scheduledAt: string | null): boolean {
 }
 
 export const PILLAR_LABELS: Record<string, string> = {
-  pov_cabine: "POV cabine",
+  pov_cabine: "POV palco",
   recap: "Recap de festa",
   comunidade: "Comunidade",
   curadoria: "Curadoria",
