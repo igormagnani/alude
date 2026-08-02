@@ -11,6 +11,8 @@ import {
   CONTENT_TYPE_QUADRANTS,
   CONTENT_TYPE_TO_QUADRANT,
   CONTENT_TYPE_QUADRANT_BADGE,
+  formatScheduledAt,
+  isScheduledLate,
 } from "@/lib/content-constants";
 import { getAssetThumbnail, hasGeneratedMedia, hasMediaPrompts, type ContentAsset } from "@/lib/asset-types";
 
@@ -88,6 +90,7 @@ function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
   });
 
   const standby = item.asset?.standby === "depende-igor";
+  const late = isScheduledLate(item.scheduled_at) && (item.status === "em_revisao" || item.status === "aprovado");
 
   // Card inteiro linca pro detalhe, exceto quando o clique nasce em algo
   // interativo (botão, input, link, etc) ou o card já tem um form aberto.
@@ -163,6 +166,19 @@ function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
 
   return (
     <div onClick={goToDetail} className="rounded-xl border border-areia/10 bg-breu/60 p-5 cursor-pointer">
+      <div className="mb-3 flex items-center gap-2 flex-wrap text-sm">
+        <span className="font-semibold text-areia">
+          {item.platforms.length > 0 ? item.platforms.map((p) => PLATFORM_LABELS[p] ?? p).join(" · ") : "sem plataforma"}
+        </span>
+        <span className="text-areia/30">·</span>
+        <span className={late ? "font-semibold text-ambar" : "text-areia/70"}>{formatScheduledAt(item.scheduled_at)}</span>
+        {late && (
+          <span className="text-[10px] uppercase tracking-wide rounded-full bg-ambar/15 text-ambar px-2 py-0.5">
+            atrasado
+          </span>
+        )}
+      </div>
+
       {thumb && (
         <div className="mb-3 -mt-1 overflow-hidden rounded-lg">
           {thumb.kind === "video" ? (
@@ -182,11 +198,6 @@ function FilaCard({ item, onDone }: { item: ContentItem; onDone: () => void }) {
         <span className="text-xs uppercase tracking-wide rounded-full bg-areia/10 text-areia/70 px-2.5 py-1">
           {FORMAT_LABELS[item.format] ?? item.format}
         </span>
-        {item.platforms.map((p) => (
-          <span key={p} className="text-xs text-areia/40">
-            {PLATFORM_LABELS[p] ?? p}
-          </span>
-        ))}
         {promptsReady && (
           <span className="text-[10px] text-dourado/80" title="Direção de mídia preenchida">
             prompt ✓

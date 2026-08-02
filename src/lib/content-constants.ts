@@ -1,3 +1,30 @@
+/**
+ * Formata scheduled_at em pt-BR, fuso America/Sao_Paulo: "sáb 02/08 · 14:00".
+ * Retorna "sem horário proposto" quando não há data.
+ */
+export function formatScheduledAt(scheduledAt: string | null): string {
+  if (!scheduledAt) return "sem horário proposto";
+  const date = new Date(scheduledAt);
+  const parts = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const weekday = get("weekday").replace(".", "");
+  return `${weekday} ${get("day")}/${get("month")} · ${get("hour")}:${get("minute")}`;
+}
+
+/** true quando scheduled_at já passou (usado pro marcador "atrasado"). */
+export function isScheduledLate(scheduledAt: string | null): boolean {
+  if (!scheduledAt) return false;
+  return new Date(scheduledAt).getTime() < Date.now();
+}
+
 export const PILLAR_LABELS: Record<string, string> = {
   pov_cabine: "POV cabine",
   recap: "Recap de festa",

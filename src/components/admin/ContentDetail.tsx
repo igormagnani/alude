@@ -4,7 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { adminFetch } from "@/lib/admin-client";
-import { PILLAR_LABELS, FORMAT_LABELS, PLATFORM_LABELS, ITEM_STATUS_LABELS } from "@/lib/content-constants";
+import {
+  PILLAR_LABELS,
+  FORMAT_LABELS,
+  PLATFORM_LABELS,
+  ITEM_STATUS_LABELS,
+  formatScheduledAt,
+  isScheduledLate,
+} from "@/lib/content-constants";
 import { ContentTypeBadge } from "@/components/admin/FilaList";
 import { ASSET_PROMPT_TOOLS, type AssetPrompt, type ContentAsset } from "@/lib/asset-types";
 
@@ -52,6 +59,7 @@ export function ContentDetail({ item }: { item: DetailItem }) {
 
   const standby = item.asset?.standby === "depende-igor";
   const media = item.asset?.media;
+  const late = isScheduledLate(item.scheduled_at) && (item.status === "em_revisao" || item.status === "aprovado");
 
   async function save() {
     setSaving(true);
@@ -156,6 +164,22 @@ export function ContentDetail({ item }: { item: DetailItem }) {
         ← Voltar pra fila
       </Link>
 
+      <div className="rounded-xl border border-areia/10 bg-breu/60 px-4 py-3 flex items-center gap-2 flex-wrap text-sm">
+        <span className="font-semibold text-areia">
+          {item.platforms.length > 0 ? item.platforms.map((p) => PLATFORM_LABELS[p] ?? p).join(" · ") : "sem plataforma"}
+        </span>
+        <span className="text-areia/30">·</span>
+        <span className={late ? "font-semibold text-ambar" : "text-areia/70"}>{formatScheduledAt(item.scheduled_at)}</span>
+        {late && (
+          <span className="text-[10px] uppercase tracking-wide rounded-full bg-ambar/15 text-ambar px-2 py-0.5">
+            atrasado
+          </span>
+        )}
+        <span className="ml-auto text-xs uppercase tracking-wide rounded-full border border-dourado/40 text-dourado px-2.5 py-1">
+          {ITEM_STATUS_LABELS[item.status] ?? item.status}
+        </span>
+      </div>
+
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <ContentTypeBadge contentType={item.content_type} />
@@ -164,14 +188,6 @@ export function ContentDetail({ item }: { item: DetailItem }) {
           </span>
           <span className="text-xs uppercase tracking-wide rounded-full bg-areia/10 text-areia/70 px-2.5 py-1">
             {FORMAT_LABELS[item.format] ?? item.format}
-          </span>
-          {item.platforms.map((p) => (
-            <span key={p} className="text-xs text-areia/40">
-              {PLATFORM_LABELS[p] ?? p}
-            </span>
-          ))}
-          <span className="text-xs uppercase tracking-wide rounded-full border border-dourado/40 text-dourado px-2.5 py-1">
-            {ITEM_STATUS_LABELS[item.status] ?? item.status}
           </span>
         </div>
         <button
