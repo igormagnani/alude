@@ -6,6 +6,7 @@ export default async function FilaPage() {
     .from("alude_content_items")
     .select("*")
     .in("status", ["draft", "em_revisao"])
+    .order("scheduled_at", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
 
   return (
