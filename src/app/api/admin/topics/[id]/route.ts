@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const EDITABLE_FIELDS = ["title", "angle", "notes", "pillar", "content_type", "score"] as const;
 
 export async function PATCH(req: Request, ctx: RouteContext<"/api/admin/topics/[id]">) {
-  if (!isAdminRequest(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await isAdminRequest(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
   if (!body?.action) return NextResponse.json({ error: "action obrigatória" }, { status: 400 });

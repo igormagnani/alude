@@ -47,7 +47,7 @@ function validateSlots(slots: unknown): string | null {
 }
 
 export async function GET(req: Request) {
-  if (!isAdminRequest(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await isAdminRequest(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data, error } = await supabaseAdmin.from("alude_settings").select("*");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const settings: Record<string, unknown> = {};
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  if (!isAdminRequest(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await isAdminRequest(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "corpo inválido" }, { status: 400 });
 

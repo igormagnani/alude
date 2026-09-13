@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  if (!isAdminRequest(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await isAdminRequest(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const [balance, performance, mixBalance, mixPerformance, settingsRows] = await Promise.all([
     supabaseAdmin.from("alude_pillar_balance").select("*"),
